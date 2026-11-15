@@ -1,4 +1,4 @@
-"""SPHEREx Blink — backend
+"""SPHEREx Blink — backend.
 """
 import json
 import hashlib
