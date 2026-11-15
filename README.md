@@ -10,6 +10,7 @@ SPHEREx Blink brings observations for selected sky positions into one browser vi
 
 ## How it works
 Enter object names or `RA, Dec` coordinates. Names are resolved to sky coordinates, and the online search asks IRSA for SPHEREx observations covering each position. The app retrieves image cutouts, reprojects them to a common tangent-plane grid (north up, east left), and displays the resulting frames. Users can inspect the images by blinking, stepping, and scrubbing, then mark a source across frames and export the measurements.
+<img width="1046" height="754" alt="image" src="https://github.com/user-attachments/assets/ab1ac896-08d4-4f6e-8bb4-a1a45ab68c0b" />
 
 The browser UI is served by a FastAPI backend. The backend uses IRSA's TAP service to find observations and its cutout service to fetch FITS images; Astropy WCS and SciPy interpolation align the cutouts, and the backend returns PNG frames. Search results and generated cutouts are cached on the server. Search history and motion marks are stored separately in the browser's local storage.
 
