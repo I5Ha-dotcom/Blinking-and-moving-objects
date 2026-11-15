@@ -1,1 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPHEREx Blink</title>
+<style>
+  :root {
+    --bg: #0d1017; --panel: #151a23; --line: #263041; --text: #e6eaf0; --dim: #8a96a8; --accent: #5ad1c4;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Georgia, "Times New Roman", serif; }
+  .app { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+  h1 { font-size: 22px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+  p.sub { margin: 4px 0 0; color: var(--dim); font-size: 14px; }
+  label { display: block; font: 13px system-ui, sans-serif; color: var(--dim); margin-bottom: 4px; }
+  input, select, button { font: 14px system-ui, sans-serif; color: var(--text); background: #0f131b; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; }
+  textarea { font: 14px/1.5 system-ui, sans-serif; color: var(--text); background: #0f131b; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; resize: vertical; }
+  button { cursor: pointer; background: #1d2431; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #06201d; border-color: var(--accent); font-weight: 600; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .row { display: flex; gap: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { width: auto; padding: 4px 10px; font-size: 13px; }
+  .hint { margin: 4px 0 0; color: var(--dim); font: 12px system-ui, sans-serif; }
+  #status { font: 13px system-ui, sans-serif; color: var(--dim); min-height: 36px; }
+  #status.err { color: #ff8a7a; }
+  main { display: flex; flex-direction: column; align-items: stretch; justify-content: center; padding: 20px; gap: 14px; min-width: 0; }
+  .stage-grid { width: min(1100px, 100%); margin: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .stage-grid[data-count="1"] { grid-template-columns: minmax(0, 1fr); max-width: 78vh; }
+  .stage-grid[data-count="9"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .panel { position: relative; min-width: 0; aspect-ratio: 1; background: #000; border: 1px solid var(--line); overflow: hidden; }
+  .stage-grid[data-count="1"] .panel { max-height: 78vh; }
+  canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+  .panel-title, .hud, .compass { position: absolute; z-index: 1; font: 12px system-ui, sans-serif; text-shadow: 0 0 4px #000, 0 1px 3px #000; }
+  .panel-title { left: 8px; top: 6px; right: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hud { left: 8px; bottom: 5px; }
+  .compass { right: 8px; top: 5px; color: var(--dim); text-align: right; }
+  .focus-btn { position: absolute; z-index: 2; right: 6px; bottom: 5px; width: auto; padding: 3px 7px; font-size: 11px; }
+  .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--dim); padding: 20px; font: 13px system-ui, sans-serif; }
+  .empty[hidden] { display: none; }
+  .stage-grid.has-focus { grid-template-columns: minmax(0, 1fr); max-width: min(78vh, 100%); }
+  .stage-grid.has-focus .panel:not(.focused) { display: none; }
+  .stage-grid.has-focus .panel.focused { max-height: 78vh; }
+  .controls { width: min(1100px, 100%); margin: auto; display: flex; gap: 10px; align-items: center; font: 13px system-ui, sans-serif; }
+  .controls button { width: 84px; }
+  .controls input[type=range] { padding: 0; accent-color: var(--accent); }
+  .controls .check { display: flex; align-items: center; gap: 6px; width: auto; margin: 0; white-space: nowrap; }
+  .controls input[type=checkbox] { width: auto; margin: 0; }
+  .note { width: min(1100px, 100%); margin: 0 auto; font: 12px system-ui, sans-serif; color: var(--dim); }
+  #scrub { flex: 1; }
+  .mode-controls[hidden] { display: none; }
+  @media (max-width: 800px) { .app { grid-template-columns: 1fr; } aside { border-right: 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div>
+      <h1>SPHEREx Blink</h1>
+      <p class="sub">Blink several targets side by side on one synchronized timeline.</p>
+    </div>
+    <div><label for="mode">View mode</label><select id="mode"><option value="watchlist">Different targets</option><option value="sky">Adjacent sky tiles</option><option value="single">Single field</option></select></div>
+    <div id="watchlist-controls">
+      <label for="watchlist">One target per tile</label>
+      <textarea id="watchlist" rows="4">Barnard's star
+M101
+269.45208, 4.69336</textarea>
+      <p class="hint">Names or RA, Dec in degrees, one per line; up to 9 targets.</p>
+    </div>
+    <div>
+      <label for="name">Object name</label>
+      <div class="row"><input id="name" placeholder="WISE 0855-0714"><button id="resolve" style="width:90px">Look up</button></div>
+      <div class="row">
+        <div><label for="ra">RA (deg)</label><input id="ra" inputmode="decimal"></div>
+        <div><label for="dec">Dec (deg)</label><input id="dec" inputmode="decimal"></div>
+      </div>
+    </div>
+    <div class="row">
+      <div><label for="size">Field (deg)</label><input id="size" value="0.1" inputmode="decimal"></div>
+      <div><label for="band">Band</label><select id="band"><option value="all">All</option><option>D1</option><option selected>D2</option><option>D3</option><option>D4</option><option>D5</option><option>D6</option></select></div>
+    </div>
+    <div id="grid-controls">
+      <label for="grid-size">Sky tile layout</label>
+      <select id="grid-size"><option value="2">2 × 2</option><option value="3">3 × 3</option></select>
+      <p class="hint">Tiles show the same sky around one center target: east is left, north is up.</p>
+    </div>
+    <div class="chips" aria-label="Examples">
+      <button data-name="Barnard's star">Barnard's star</button>
+      <button data-name="M101">M101</button>
+    </div>
+    <button class="primary" id="go">Find images online</button>
+    <button id="demo">Run demo</button>
+    <div id="status" role="status"></div>
+  </aside>
+
+  <main>
+    <div class="stage-grid" id="stage-grid" data-count="1"></div>
+    <div class="controls">
+      <button id="play" disabled>Play</button>
+      <input type="range" id="scrub" min="0" max="0" value="0" disabled aria-label="Frame">
+      <label for="speed" style="margin:0">Speed</label>
+      <input type="range" id="speed" min="1" max="12" value="4" style="width:90px">
+      <label class="check" for="diff"><input type="checkbox" id="diff" disabled> Difference</label>
+    </div>
+    <p class="note" id="diffnote">Each watchlist tile is a different target. Play runs a local demo; Find images online queries IRSA. Click Focus to expand a tile.</p>
+  </main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const grid = $('stage-grid');
+let panels = [], timeline = [], cur = 0, timer = null, runId = 0;
+
+function status(msg, err=false){ const s=$('status'); s.textContent=msg; s.className=err?'err':''; }
+
+async function api(path){
+  const r = await fetch(path);
+  if(!r.ok){ let d=''; try{ d=(await r.json()).detail }catch{} throw new Error(d || r.statusText); }
+  return r;
+}
+
+async function resolve(name){
+  status('Looking up ' + name + '…');
+  try {
+    const j = await (await api('/api/resolve?name=' + encodeURIComponent(name))).json();
+    $('ra').value = j.ra.toFixed(5); $('dec').value = j.dec.toFixed(5);
+    status('Found ' + name + '.');
+    return true;
+  } catch(e){ status(e.message, true); return false; }
+}
+
+function updateMode(){
+  const mode = $('mode').value;
+  $('watchlist-controls').hidden = mode !== 'watchlist';
+  $('grid-controls').hidden = mode !== 'sky';
+  $('go').textContent = mode === 'watchlist' ? 'Find watchlist online' : 'Find images online';
+}
+
+$('mode').onchange = updateMode;
+$('resolve').onclick = () => $('name').value && resolve($('name').value);
+$('name').onkeydown = e => { if(e.key==='Enter') $('resolve').click(); };
+document.querySelectorAll('.chips button').forEach(b => b.onclick = async () => {
+  $('name').value = b.dataset.name;
+  if(await resolve(b.dataset.name)) $('go').click();
+});
+
+function skyTargets(){
+  const ra = Number($('ra').value), dec = Number($('dec').value), size = Number($('size').value);
+  if(!Number.isFinite(ra) || !Number.isFinite(dec) || ra < 0 || ra > 360 || dec < -90 || dec > 90)
+    throw new Error('Enter a valid center RA (0–360°) and Dec (−90–90°), or look up an object name.');
+  if(!Number.isFinite(size) || size <= 0 || size > 10)
+    throw new Error('Field size must be greater than 0 and at most 10 degrees.');
+  const n = $('mode').value === 'sky' ? Number($('grid-size').value) : 1;
+  const cosDec = Math.cos(dec * Math.PI / 180);
+  if(Math.abs(cosDec) < 0.05 && n > 1)
+    throw new Error('Adjacent RA tiles are not supported this close to a celestial pole.');
+  const center = (n - 1) / 2;
+  const targets = [];
+  for(let row = 0; row < n; row++){
+    for(let col = 0; col < n; col++){
+      const east = (center - col) * size;
+      const north = (center - row) * size;
+      const tileRa = ((ra + east / cosDec) % 360 + 360) % 360;
+      const tileDec = dec + north;
+      if(Math.abs(tileDec) > 90) throw new Error('The selected sky grid would extend past a celestial pole.');
+      targets.push({
+        ra: tileRa, dec: tileDec, label: n === 1 ? ($('name').value || 'Sky field') : `Row ${row+1}, Col ${col+1} · ${east >= 0 ? 'East' : 'West'} ${Math.abs(east).toFixed(3)}° · ${north >= 0 ? 'North' : 'South'} ${Math.abs(north).toFixed(3)}°`,
+        id: targets.length, row, col, east, north, mode: 'sky',
+      });
+    }
+  }
+  return targets;
+}
+
+function parseCoordinates(text){
+  const parts = text.trim().split(/[,\s]+/).map(Number);
+  if(parts.length !== 2 || !parts.every(Number.isFinite)) return null;
+  const [ra, dec] = parts;
+  return ra >= 0 && ra <= 360 && dec >= -90 && dec <= 90 ? {ra, dec} : null;
+}
+
+async function watchlistTargets(){
+  const entries = $('watchlist').value.split(/\r?\n/).map(text => text.trim()).filter(Boolean);
+  if(!entries.length) throw new Error('Add at least one target, one per line.');
+  if(entries.length > 9) throw new Error('The watchlist supports up to 9 targets.');
+  return Promise.all(entries.map(async (label, id) => {
+    const coords = parseCoordinates(label);
+    if(coords) return {...coords, label, id, mode: 'watchlist'};
+    status(`Resolving target ${id + 1}/${entries.length}: ${label}…`);
+    const result = await (await api('/api/resolve?name=' + encodeURIComponent(label))).json();
+    return {ra: result.ra, dec: result.dec, label, id, mode: 'watchlist'};
+  }));
+}
+
+function clearPanels(){
+  panels = []; timeline = []; cur = 0;
+  grid.replaceChildren();
+  grid.classList.remove('has-focus');
+  $('diff').checked = false; $('diff').disabled = true;
+  $('scrub').value = 0; $('scrub').max = 0; $('scrub').disabled = true;
+  $('play').disabled = true;
+}
+
+function createPanels(targets, mode){
+  clearPanels();
+  grid.dataset.count = String(targets.length);
+  panels = targets.map((target, index) => {
+    const card = document.createElement('section');
+    card.className = 'panel';
+    const canvas = document.createElement('canvas');
+    const pixels = targets.length === 1 ? 400 : 200;
+    canvas.width = pixels; canvas.height = pixels;
+    canvas.setAttribute('aria-label', `Blinking images: ${target.label}`);
+    const title = document.createElement('div');
+    title.className = 'panel-title'; title.textContent = target.label;
+    const compass = document.createElement('div');
+    compass.className = 'compass'; compass.textContent = 'N ↑ · E ←';
+    const hud = document.createElement('div'); hud.className = 'hud';
+    const empty = document.createElement('div');
+    empty.className = 'empty'; empty.textContent = mode === 'demo' ? 'Preparing simulation…' : 'Searching IRSA…';
+    const focus = document.createElement('button');
+    focus.className = 'focus-btn'; focus.textContent = 'Focus';
+    focus.setAttribute('aria-label', `Focus ${target.label}`);
+    focus.onclick = () => {
+      const wasFocused = card.classList.contains('focused');
+      grid.classList.toggle('has-focus', !wasFocused);
+      card.classList.toggle('focused', !wasFocused);
+      focus.textContent = wasFocused ? 'Focus' : 'Grid';
+    };
+    card.append(canvas, title, compass, hud, empty, focus);
+    grid.append(card);
+    return {...target, card, canvas, ctx: canvas.getContext('2d'), hud, empty, frames: [], diffs: []};
+  });
+}
+
+function setLoadingControls(){
+  $('play').disabled = true;
+  $('scrub').disabled = true;
+  $('diff').checked = false;
+  $('diff').disabled = true;
+}
+
+async function mapLimit(items, limit, task){
+  let next = 0;
+  await Promise.all(Array.from({length: Math.min(limit, items.length)}, async () => {
+    while(next < items.length) await task(items[next++]);
+  }));
+}
+
+function nearestFrame(list, mjd){
+  let lo = 0, hi = list.length;
+  while(lo < hi){
+    const mid = (lo + hi) >> 1;
+    if(list[mid].mjd < mjd) lo = mid + 1;
+    else hi = mid;
+  }
+  const before = list[Math.max(0, lo - 1)], after = list[Math.min(list.length - 1, lo)];
+  return Math.abs(before.mjd - mjd) <= Math.abs(after.mjd - mjd) ? before : after;
+}
+
+async function loadOnline(){
+  const id = ++runId;
+  stop(); setLoadingControls();
+  try {
+    const targets = $('mode').value === 'watchlist' ? await watchlistTargets() : skyTargets();
+    if(id !== runId) return;
+    createPanels(targets, 'online');
+    const unit = $('mode').value === 'watchlist' ? 'target' : 'field';
+    status(`Searching IRSA for ${targets.length} ${unit}${targets.length === 1 ? '' : 's'}…`);
+    const band = $('band').value;
+    const maxFrames = targets.length >= 9 ? 12 : targets.length > 1 ? 20 : 30;
+    const results = new Array(targets.length);
+    let searched = 0;
+    await mapLimit(targets, 3, async (target, index) => {
+      const q = new URLSearchParams({ra: target.ra, dec: target.dec, band, max_frames: maxFrames});
+      const response = await api('/api/search?' + q);
+      results[target.id] = await response.json();
+      status(`IRSA search ${++searched}/${targets.length}…`);
+    });
+    if(id !== runId) return;
+    let found = 0;
+    for(const panel of panels){
+      panel.frames = results[panel.id].frames.map(frame => ({...frame, panel}));
+      found += panel.frames.length;
+      panel.empty.textContent = panel.frames.length ? 'Loading frames…' : 'No images at this location.';
+    }
+    if(!found) throw new Error('IRSA found no SPHEREx images for these fields.');
+    const reference = panels.find(panel => panel.frames.length);
+    timeline = reference.frames;
+    const jobs = panels.flatMap(panel => panel.frames.map(frame => ({panel, frame})));
+    let loaded = 0, failed = 0;
+    status(`Found ${found} field-frames. Downloading cutouts 0/${jobs.length}…`);
+    await mapLimit(jobs, 4, async ({panel, frame}) => {
+      try {
+        const q = new URLSearchParams({
+          url: frame.url, ra: panel.ra, dec: panel.dec,
+          size: Number($('size').value) || 0.1,
+          npix: targets.length === 1 ? 400 : 200,
+        });
+        const response = await api('/api/frame?' + q);
+        frame.image = await createImageBitmap(await response.blob());
+      } catch(e) {
+        failed++;
+        frame.loadError = e.message;
+      }
+      status(`Loading cutouts ${++loaded}/${jobs.length}…`);
+    });
+    if(id !== runId) return;
+    panels.forEach(panel => {
+      panel.frames = panel.frames.filter(frame => frame.image);
+      if(!panel.frames.length) panel.empty.textContent = 'No frames could be loaded for this field.';
+      else panel.empty.hidden = true;
+    });
+    timeline = reference.frames.filter(frame => frame.image);
+    if(!timeline.length) throw new Error('Images were found, but no cutout frames could be loaded. Check the server log.');
+    $('scrub').max = timeline.length - 1;
+    $('scrub').disabled = false;
+    $('play').disabled = false;
+    $('diff').disabled = !panels.some(panel =>
+      Object.values(panel.frames.reduce((bands, frame) => {
+        bands[frame.band] = (bands[frame.band] || 0) + 1;
+        return bands;
+      }, {})).some(count => count > 1));
+      status(`${timeline.length} synchronized dates · ${timeline[0].date} to ${timeline[timeline.length-1].date} UTC${failed ? ` · ${failed} cutout(s) unavailable` : ''}.`);
+    show(0); play();
+  } catch(e) {
+    if(id === runId) {
+      panels.forEach(panel => {
+        panel.empty.hidden = false;
+        panel.empty.textContent = e.message;
+      });
+      status(e.message, true);
+    }
+  }
+}
+
+$('go').onclick = loadOnline;
+
+function seededRandom(seed){
+  return () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+}
+
+async function runDemo(){
+  const id = ++runId;
+  stop(); setLoadingControls();
+  let targets;
+  try {
+    targets = $('mode').value === 'watchlist'
+      ? $('watchlist').value.split(/\r?\n/).map(text => text.trim()).filter(Boolean).map((label, targetId) => ({
+          label, id: targetId, mode: 'watchlist', ra: 0, dec: 0,
+          east: (targetId - 1) * (Number($('size').value) || 0.1) * 1.1, north: 0,
+        }))
+      : skyTargets();
+    if(!targets.length) throw new Error('Add at least one target, one per line.');
+    if(targets.length > 9) throw new Error('The watchlist supports up to 9 targets.');
+  } catch(e) { status(e.message, true); return; }
+  createPanels(targets, 'demo');
+  const count = 18, width = panels[0].canvas.width, height = panels[0].canvas.height;
+  const size = Number($('size').value) || 0.1;
+  const eastMin = Math.min(...targets.map(t => t.east || 0)) - size;
+  const eastMax = Math.max(...targets.map(t => t.east || 0)) + size;
+  const northMin = Math.min(...targets.map(t => t.north || 0)) - size;
+  const northMax = Math.max(...targets.map(t => t.north || 0)) + size;
+  const random = seededRandom(86421);
+  const stars = Array.from({length: 240}, () => ({
+    east: eastMin + random() * (eastMax - eastMin),
+    north: northMin + random() * (northMax - northMin),
+    radius: 0.5 + random() * 1.3,
+    brightness: 100 + Math.floor(random() * 156),
+  }));
+  timeline = Array.from({length: count}, (_, i) => ({
+    mjd: 60676 + i * 14, date: new Date(Date.UTC(2025, 0, 1 + i * 14)).toISOString().slice(0,16).replace('T',' '),
+    band: 'D2', demo: true,
+  }));
+  const extent = Math.max(1, Math.ceil(Math.sqrt(targets.length))) * size / 2;
+  for(let i = 0; i < count; i++){
+    if(id !== runId) return;
+    const east = extent - i * (2 * extent / (count - 1));
+    const north = Math.sin(i * 0.42) * size * 0.3;
+    for(const panel of panels){
+      const surface = document.createElement('canvas');
+      surface.width = width; surface.height = height;
+      const paint = surface.getContext('2d');
+      paint.fillStyle = '#03060d';
+      paint.fillRect(0, 0, width, height);
+      if(panel.mode === 'watchlist'){
+        const panelRandom = seededRandom(86421 + panel.id * 7919);
+        for(let s = 0; s < 120; s++){
+          const x = panelRandom() * width, y = panelRandom() * height;
+          const brightness = 100 + Math.floor(panelRandom() * 156);
+          paint.fillStyle = `rgb(${brightness},${brightness},${Math.min(255, brightness + 18)})`;
+          paint.beginPath(); paint.arc(x, y, 0.5 + panelRandom(), 0, Math.PI * 2); paint.fill();
+        }
+      } else {
+        for(const star of stars){
+          const x = ((panel.east + size / 2 - star.east) / size) * width;
+          const y = ((panel.north + size / 2 - star.north) / size) * height;
+          if(x < -3 || x > width + 3 || y < -3 || y > height + 3) continue;
+          const twinkle = Math.sin(i * 0.7 + star.east * 100) * 18;
+          const brightness = Math.max(50, Math.min(255, star.brightness + twinkle));
+          paint.fillStyle = `rgb(${brightness},${brightness},${Math.min(255, brightness + 18)})`;
+          paint.beginPath(); paint.arc(x, y, star.radius, 0, Math.PI * 2); paint.fill();
+        }
+      }
+      const targetEast = panel.mode === 'watchlist'
+        ? panel.east + size * (0.4 - i * 0.8 / (count - 1)) : east;
+      const targetNorth = panel.mode === 'watchlist'
+        ? Math.sin(i * 0.42 + panel.id) * size * 0.3 : north;
+      const x = panel.mode === 'watchlist'
+        ? ((targetEast - panel.east + size / 2) / size) * width
+        : ((panel.east + size / 2 - targetEast) / size) * width;
+      const y = panel.mode === 'watchlist'
+        ? ((size / 2 - targetNorth) / size) * height
+        : ((panel.north + size / 2 - targetNorth) / size) * height;
+      if(x > -20 && x < width + 20 && y > -20 && y < height + 20){
+        const glow = paint.createRadialGradient(x, y, 1, x, y, 15);
+        const hue = panel.mode === 'watchlist' ? (panel.id * 73 + 35) % 360 : 42;
+        glow.addColorStop(0, `hsla(${hue},100%,90%,1)`);
+        glow.addColorStop(0.18, `hsla(${hue},100%,65%,.9)`);
+        glow.addColorStop(1, `hsla(${hue},100%,50%,0)`);
+        paint.fillStyle = glow; paint.fillRect(x-15, y-15, 30, 30);
+        paint.fillStyle = `hsl(${hue},100%,90%)`; paint.beginPath(); paint.arc(x, y, 2.2, 0, Math.PI*2); paint.fill();
+      }
+      panel.frames.push({...timeline[i], panel, image: await createImageBitmap(surface)});
+    }
+    status(`Building synchronized demo frames ${i + 1}/${count}…`);
+  }
+  panels.forEach(panel => { panel.empty.hidden = true; });
+  $('scrub').max = timeline.length - 1;
+  $('scrub').disabled = false; $('play').disabled = false; $('diff').disabled = false;
+  status(`Demo simulation · ${panels.length} synchronized ${targets.length === 1 ? 'field' : 'targets'} · one synthetic target per tile.`);
+  show(0); play();
+}
+
+$('demo').onclick = () => runDemo().catch(e => status(`Could not build demo: ${e.message}`, true));
+
+function lumaOf(bmp){
+  const c = document.createElement('canvas');
+  c.width = bmp.width; c.height = bmp.height;
+  const g = c.getContext('2d', {willReadFrequently: true});
+  g.drawImage(bmp, 0, 0);
+  const rgba = g.getImageData(0, 0, c.width, c.height).data;
+  const v = new Float32Array(c.width * c.height);
+  for(let i = 0, p = 0; i < rgba.length; i += 4, p++) v[p] = rgba[i];
+  return v;
+}
+
+function medianInPlace(col, n){
+  for(let i = 1; i < n; i++){
+    const x = col[i]; let j = i;
+    while(j && col[j - 1] > x){ col[j] = col[j - 1]; j--; }
+    col[j] = x;
+  }
+  const m = n >> 1;
+  return n & 1 ? col[m] : 0.5 * (col[m - 1] + col[m]);
+}
+
+function medianFloat32(a){
+  const b = a.slice();
+  b.sort();
+  const n = b.length, m = n >> 1;
+  return n & 1 ? b[m] : 0.5 * (b[m - 1] + b[m]);
+}
+
+async function pixelsToBitmap(w, h, grey){
+  const img = new ImageData(w, h);
+  const d = img.data;
+  for(let p = 0, i = 0; p < grey.length; p++, i += 4){
+    d[i] = d[i + 1] = d[i + 2] = grey[p];
+    d[i + 3] = 255;
+  }
+  return createImageBitmap(img);
+}
+
+async function ensureDiffs(){
+  status('Computing synchronized difference frames…');
+  for(const panel of panels){
+    if(panel.diffs.length === panel.frames.length) continue;
+    const imgs = panel.frames.map(frame => frame.image);
+    if(!imgs.length) continue;
+    const w = imgs[0].width, h = imgs[0].height, npix = w * h;
+    const lumas = imgs.map(lumaOf);
+    const frames = panel.frames;
+  const byBand = {};
+  frames.forEach((f, i) => { (byBand[f.band] ||= []).push(i); });
+  const out = new Array(imgs.length);
+
+  for(const idxs of Object.values(byBand)){
+    const n = idxs.length;
+    const grey = new Uint8ClampedArray(npix);
+    if(n < 2){
+      grey.fill(128);
+      out[idxs[0]] = await pixelsToBitmap(w, h, grey);
+      continue;
+    }
+    const med = new Float32Array(npix);
+    const col = new Float32Array(n);
+    for(let p = 0; p < npix; p++){
+      for(let k = 0; k < n; k++) col[k] = lumas[idxs[k]][p];
+      med[p] = medianInPlace(col, n);
+    }
+    const resids = idxs.map(i => {
+      const r = new Float32Array(npix);
+      const v = lumas[i];
+      for(let p = 0; p < npix; p++) r[p] = v[p] - med[p];
+      return r;
+    });
+    const abs = new Float32Array(n * npix);
+    let t = 0;
+    for(const r of resids) for(let p = 0; p < npix; p++) abs[t++] = Math.abs(r[p]);
+    let mad = medianFloat32(abs);
+    if(mad < 1e-6){
+      let z = 0;
+      for(let i = 0; i < abs.length; i++) if(abs[i] > 0) abs[z++] = abs[i];
+      mad = z ? medianFloat32(abs.subarray(0, z)) : 0;
+    }
+    const scale = 3 * 1.4826 * mad;
+    for(let k = 0; k < n; k++){
+      const r = resids[k];
+      if(scale < 1e-6) grey.fill(128);
+      else for(let p = 0; p < npix; p++) grey[p] = 128 + (r[p] / scale) * 128;
+      out[idxs[k]] = await pixelsToBitmap(w, h, grey);
+    }
+  }
+    panel.diffs = out;
+  }
+  status('Difference frames ready.');
+}
+
+function show(i){
+  if(!timeline.length) return;
+  cur = (i + timeline.length) % timeline.length;
+  const master = timeline[cur];
+  for(const panel of panels){
+    if(!panel.frames.length){
+      panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+      continue;
+    }
+    const frame = nearestFrame(panel.frames, master.mjd);
+    const frameIndex = panel.frames.indexOf(frame);
+    const source = $('diff').checked && panel.diffs[frameIndex] ? panel.diffs[frameIndex] : frame.image;
+    panel.ctx.drawImage(source, 0, 0, panel.canvas.width, panel.canvas.height);
+    panel.hud.textContent = `${cur+1}/${timeline.length} · ${frame.date} UTC · ${frame.band}${frame.demo ? ' · DEMO' : ''}${$('diff').checked ? ' · difference' : ''}`;
+  }
+  $('scrub').value = cur;
+}
+function play(){ stop(); timer = setInterval(() => show(cur + 1), 1000 / +$('speed').value); $('play').textContent = 'Pause'; }
+function stop(){ if(timer) clearInterval(timer); timer = null; $('play').textContent = 'Play'; }
+$('play').onclick = () => timer ? stop() : play();
+$('scrub').oninput = e => { stop(); show(+e.target.value); };
+$('speed').oninput = () => { if(timer) play(); };
+$('diff').onchange = async () => {
+  if($('diff').checked && panels.length) await ensureDiffs();
+  if(timeline.length) show(cur);
+};
+document.addEventListener('keydown', e => {
+  if(!timeline.length || ['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName) && e.key === ' ') return;
+  if(e.key === ' '){ e.preventDefault(); $('play').click(); }
+  if(e.key === 'ArrowRight'){ stop(); show(cur + 1); }
+  if(e.key === 'ArrowLeft'){ stop(); show(cur - 1); }
+});
+
+updateMode();
+</script>
+</body>
+</html>
 
