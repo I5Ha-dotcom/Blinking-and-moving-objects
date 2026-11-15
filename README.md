@@ -9,7 +9,7 @@ Compare public SPHEREx observations of multiple targets side by side to inspect 
 - **Presentation:** [View the SPHEREx Blink project introduction (PDF)](https://github.com/I5Ha-dotcom/Blinking-and-moving-objects/blob/main/presentation%20%28pdf%29/SPHEREx-Blink-Project-Introduction.pdf)
 - **Development story:** [Read the project history and development log](docs/PROJECT_HISTORY.md)
 
-> **Status note (Nov 15, 2026, 11:47 PM ICT, UTC+7):** In the latest documented integration attempt, IRSA's SPHEREx TAP request returned a proxy error, so a successful live search has not been verified. Online searches depend on IRSA. The offline demo uses synthetic data and works without IRSA. No real-data results are presented in this README.
+> **Status note (Nov 15, 2026, 11:47 PM ICT, UTC+7):** In the latest documented integration attempt, IRSA's SPHEREx TAP request returned a proxy error, so a successful live search has not been verified. Online searches depend on IRSA. The offline demo uses synthetic data and works wisthout IRSA. No real-data results are presented in this README.
 
 ## Problem and proposed solution
 Finding a moving or changing source in a large collection of astronomical images can require manually opening and comparing observations from different dates. This makes it difficult to notice motion, especially when observations are separated in time or the object is faint.
@@ -20,6 +20,10 @@ SPHEREx Blink brings observations for selected sky positions into one browser vi
 The screenshot shows three separate target panels, each with its own image and controls. It is the **synthetic demo**, not real SPHEREx data. The [demo recording](docs/media/spherex-blink-demo.mp4) walks through the application.
 
 ![SPHEREx Blink showing three separate synthetic target panels, per-object playback controls, and motion-mark results](docs/screenshots/spherex-blink-demo.png)
+
+This second synthetic-demo screenshot focuses on the **motion-marking example**: marked positions, suggested paths, and the displayed apparent-motion readout. These simulated tracks demonstrate the interface and are not real SPHEREx measurements.
+
+![SPHEREx Blink synthetic demo showing marked source paths and apparent-motion readouts for separate targets](docs/screenshots/spherex-blink-motion-tracking.png)
 
 ### The workflow at a glance
 Choose what to look at, load either the offline demo or public observations, compare images over time, and optionally mark and export a candidate's apparent motion.
@@ -124,6 +128,8 @@ This history is local to the browser profile: it is not account-based, shared be
 
 ### 7. Export measurements
 After marking at least one source position, choose **Download JSON** or **Download CSV** to export the marked measurements. Choose **Download day-to-day CSV** when you have at least two marks and want the pairwise angular movement between marked dates. Exports distinguish demo measurements from online observations.
+
+The files are downloaded by your browser (usually to its **Downloads** folder; the exact location depends on your browser settings). The app does not save them in the project or upload them to the server. Keep personal working exports outside the repository. If you want to share example exports with the project, place only reviewed, non-sensitive synthetic examples in `docs/examples/exports/` and label them as simulated data. The folder includes [a sample motion CSV](docs/examples/exports/spherex-motion-example-synthetic.csv) and [a sample day-to-day CSV](docs/examples/exports/spherex-day-to-day-example-synthetic.csv); both open in Excel and are explicitly simulated.
 
 ### What distances mean
 The measurements here describe a source's **apparent angular motion** on the sky across observations. They are not its physical speed or distance in space. The app does not currently calculate pairwise separation between the different targets in separate panels. That angular separation can be calculated from target coordinates; a physical distance between objects requires additional distance measurements (such as parallax or redshift) and is not inferred from these images.
