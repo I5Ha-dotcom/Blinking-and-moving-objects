@@ -1,10 +1,4 @@
-"""SPHEREx Blink — backend.
-
-Finds every public SPHEREx spectral image covering a sky position (IRSA SIA2),
-downloads a small cutout of each, puts them all on one shared sky grid, and
-serves them as PNG frames so the browser can blink them in time order.
-A Planet X candidate shows up as a source that jumps between frames
-while the background stars stay put.
+"""SPHEREx Blink — backend
 """
 import json
 import hashlib
