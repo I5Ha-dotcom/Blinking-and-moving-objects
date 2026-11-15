@@ -32,8 +32,9 @@
   .stage-grid { width: min(1100px, 100%); margin: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .stage-grid[data-count="1"] { grid-template-columns: minmax(0, 1fr); max-width: 78vh; }
   .stage-grid[data-count="9"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .panel { position: relative; min-width: 0; aspect-ratio: 1; background: #000; border: 1px solid var(--line); overflow: hidden; }
-  .stage-grid[data-count="1"] .panel { max-height: 78vh; }
+  .panel { position: relative; min-width: 0; background: #000; border: 1px solid var(--line); overflow: hidden; }
+  .panel { display: flex; flex-direction: column; }
+  .panel-view { position: relative; flex: none; width: 100%; aspect-ratio: 1; overflow: hidden; }
   canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
   .panel-title, .hud, .compass { position: absolute; z-index: 1; font: 12px system-ui, sans-serif; text-shadow: 0 0 4px #000, 0 1px 3px #000; }
   .panel-title { left: 8px; top: 6px; right: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -44,15 +45,61 @@
   .empty[hidden] { display: none; }
   .stage-grid.has-focus { grid-template-columns: minmax(0, 1fr); max-width: min(78vh, 100%); }
   .stage-grid.has-focus .panel:not(.focused) { display: none; }
-  .stage-grid.has-focus .panel.focused { max-height: 78vh; }
+  .stage-grid.has-focus .panel.focused { max-height: none; }
   .controls { width: min(1100px, 100%); margin: auto; display: flex; gap: 10px; align-items: center; font: 13px system-ui, sans-serif; }
   .controls button { width: 84px; }
   .controls input[type=range] { padding: 0; accent-color: var(--accent); }
   .controls .check { display: flex; align-items: center; gap: 6px; width: auto; margin: 0; white-space: nowrap; }
   .controls input[type=checkbox] { width: auto; margin: 0; }
+  .panel-controls { display: flex; gap: 6px; align-items: center; padding: 5px 7px; background: var(--panel); font: 11px system-ui, sans-serif; }
+  .panel-controls button { width: auto; padding: 3px 7px; font-size: 11px; }
+  .panel-controls input[type=range] { min-width: 20px; width: 100%; padding: 0; accent-color: var(--accent); }
+  .panel-controls .panel-speed { width: 52px; }
+  .panel-controls .check { display: flex; align-items: center; gap: 3px; white-space: nowrap; margin: 0; font-size: 11px; }
+  .panel-controls input[type=checkbox] { width: auto; margin: 0; }
+  .sync-control { display: flex; gap: 10px; align-items: center; width: min(1100px, 100%); margin: 0 auto; font: 13px system-ui, sans-serif; }
+  .sync-control select { width: auto; }
+  .sync-control label { margin: 0; }
+  .sync-control[hidden], .controls[hidden] { display: none; }
   .note { width: min(1100px, 100%); margin: 0 auto; font: 12px system-ui, sans-serif; color: var(--dim); }
   #scrub { flex: 1; }
   .mode-controls[hidden] { display: none; }
+  canvas { cursor: crosshair; }
+  .motion { position: absolute; z-index: 1; left: 8px; right: 130px; bottom: 22px; font: 11px/1.3 system-ui, sans-serif; color: #ffd479; text-shadow: 0 0 4px #000, 0 1px 3px #000; pointer-events: none; }
+  .track-actions button { width: auto; padding: 6px 12px; }
+  .history-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .history-tools label, .history-tools select { grid-column: 1 / -1; }
+  .history-tools button { width: auto; }
+  .path-btn { position: absolute; z-index: 2; right: 62px; bottom: 5px; width: auto; padding: 3px 7px; font-size: 11px; }
+  .brand-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .brand-row h1 { padding-top: 3px; }
+  .help-button { width: auto; white-space: nowrap; padding: 5px 9px; font-size: 12px; }
+  .guide-overlay[hidden] { display: none; }
+  .guide-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(3, 6, 12, .76); }
+  .guide-highlight { position: relative !important; z-index: 1001 !important; box-shadow: 0 0 0 4px var(--accent), 0 0 0 7px rgba(90, 209, 196, .3); border-radius: 6px; }
+  #guide-arrow { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1002; pointer-events: none; overflow: visible; }
+  #guide-arrow > path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 1px 3px #000); }
+  #guide-arrowhead path { fill: var(--accent); stroke: none; }
+  .guide-card { position: fixed; z-index: 1003; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); padding: 18px; background: #171e2a; border: 1px solid var(--accent); border-radius: 12px; box-shadow: 0 18px 60px #000b; font-family: system-ui, sans-serif; }
+  .guide-card h2 { margin: 4px 0 8px; font-size: 19px; }
+  .guide-card p { margin: 0; color: var(--text); font-size: 14px; }
+  .guide-progress { color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .guide-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .guide-actions button { width: auto; }
+  .guide-actions .guide-spacer { flex: 1; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+  #track details { margin: 2px 0 14px; }
+  #track h3 button { width: auto; margin-left: 10px; padding: 2px 9px; font: 12px system-ui, sans-serif; }
+  #track summary { cursor: pointer; color: var(--dim); margin-bottom: 4px; }
+  #track table.pairs td { text-align: center; color: var(--text); }
+  #track table.pairs th:first-child { text-align: left; }
+  #track table.pairs td.empty-cell { color: var(--line); }
+  #track { width: min(1100px, 100%); min-height: 36px; margin: 0 auto; font: 12px system-ui, sans-serif; overflow-x: auto; }
+  #track h3 { font: 600 13px system-ui, sans-serif; margin: 8px 0 4px; }
+  #track table { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+  #track th, #track td { text-align: right; padding: 3px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  #track th { color: var(--dim); font-weight: 500; }
+  #track th:first-child, #track td:first-child { text-align: left; }
   @media (max-width: 800px) { .app { grid-template-columns: 1fr; } aside { border-right: 0; border-bottom: 1px solid var(--line); } }
 </style>
 </head>
@@ -60,8 +107,9 @@
 <div class="app">
   <aside>
     <div>
-      <h1>SPHEREx Blink</h1>
-      <p class="sub">Blink several targets side by side on one synchronized timeline.</p>
+      <div class="brand-row"><h1>SPHEREx Blink</h1><button id="open-guide" class="help-button" type="button">How to use</button></div>
+      <p class="sub">Blink targets together or control each one separately.</p>
+      <p class="hint">Build: motion tracking + paths + auto-find</p>
     </div>
     <div><label for="mode">View mode</label><select id="mode"><option value="watchlist">Different targets</option><option value="sky">Adjacent sky tiles</option><option value="single">Single field</option></select></div>
     <div id="watchlist-controls">
@@ -94,28 +142,256 @@ M101
     </div>
     <button class="primary" id="go">Find images online</button>
     <button id="demo">Run demo</button>
+    <div class="history-tools">
+      <label for="saved-searches">Saved searches (this browser)</label>
+      <select id="saved-searches"><option value="">No saved searches</option></select>
+      <button id="history-back" disabled>Back</button>
+      <button id="history-forward" disabled>Forward</button>
+      <button id="open-saved" style="grid-column:1 / -1" disabled>Open selected</button>
+      <button id="clear-saved" style="grid-column:1 / -1">Clear saved history</button>
+    </div>
     <div id="status" role="status"></div>
   </aside>
 
   <main>
     <div class="stage-grid" id="stage-grid" data-count="1"></div>
+    <div class="sync-control">
+      <label for="playback-mode">Playback</label>
+      <select id="playback-mode"><option value="sync">Synchronized</option><option value="independent">Independent per object</option></select>
+      <span class="hint">Choose one shared timeline or control each object's dates separately.</span>
+    </div>
     <div class="controls">
       <button id="play" disabled>Play</button>
       <input type="range" id="scrub" min="0" max="0" value="0" disabled aria-label="Frame">
       <label for="speed" style="margin:0">Speed</label>
       <input type="range" id="speed" min="1" max="12" value="4" style="width:90px">
-      <label class="check" for="diff"><input type="checkbox" id="diff" disabled> Difference</label>
+      <label class="check" for="diff"><input type="checkbox" id="diff" disabled title="Shows deviations from the per-band median; warm colors are brighter and cyan is dimmer. Visual aid, not calibrated photometry."> Difference</label>
     </div>
-    <p class="note" id="diffnote">Each watchlist tile is a different target. Play runs a local demo; Find images online queries IRSA. Click Focus to expand a tile.</p>
+    <p class="note" id="diffnote">Demo images are simulated; online searches use public IRSA observations. Motion marks are visual estimates and should be checked against the images.</p>
+    <div class="controls track-actions">
+      <label class="check" for="snap"><input type="checkbox" id="snap" checked> Snap to brightest source</label>
+      <button id="auto-find">Auto-find path</button>
+      <button id="paths-all">Hide all paths</button>
+      <button id="clear-marks">Clear marks</button>
+      <button id="dl-json">Download JSON</button>
+      <button id="dl-csv">Download CSV</button>
+      <button id="dl-pairs">Download day-to-day CSV</button>
+    </div>
+    <div id="track"></div>
   </main>
+</div>
+
+<div id="guide-overlay" class="guide-overlay" hidden>
+  <svg id="guide-arrow" aria-hidden="true"><defs><marker id="guide-arrowhead" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#5ad1c4"></path></marker></defs><path id="guide-arrow-path" marker-end="url(#guide-arrowhead)"></path></svg>
+  <section id="guide-card" class="guide-card" role="dialog" aria-modal="true" aria-labelledby="guide-title" aria-describedby="guide-copy" tabindex="-1">
+    <div id="guide-progress" class="guide-progress"></div>
+    <h2 id="guide-title"></h2>
+    <p id="guide-copy"></p>
+    <div class="guide-actions">
+      <button id="guide-back" type="button">Back</button>
+      <button id="guide-skip" type="button">Close</button>
+      <span class="guide-spacer"></span>
+      <button id="guide-next" class="primary" type="button">Next</button>
+    </div>
+  </section>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
 const grid = $('stage-grid');
-let panels = [], timeline = [], cur = 0, timer = null, runId = 0;
+let panels = [], timeline = [], cur = 0, timer = null, runId = 0, playbackMode = 'sync';
+const SAVED_HISTORY_KEY = 'spherex-blink:saved-searches:v1';
+const NAV_SEQUENCE_KEY = 'spherex-blink:navigation-max:v1';
+const MAX_SAVED_SEARCHES = 30;
+let savedSearches = readSavedSearches();
+let activeSearchId = null;
+let navigationSequence = Number(window.history.state?.spherexSequence) || 0;
+let navigationMaximum = readNavigationMaximum();
 
 function status(msg, err=false){ const s=$('status'); s.textContent=msg; s.className=err?'err':''; }
+
+function readSavedSearches(){
+  try {
+    const stored = localStorage.getItem(SAVED_HISTORY_KEY);
+    if(!stored) return [];
+    const parsed = JSON.parse(stored);
+    if(!Array.isArray(parsed)) throw new Error('Saved search history is not a list.');
+    return parsed.filter(entry => entry && typeof entry.id === 'string' && Array.isArray(entry.targets));
+  } catch(e) {
+    status(`Could not read saved searches from this browser: ${e.message}`, true);
+    return [];
+  }
+}
+
+function readNavigationMaximum(){
+  try {
+    return Math.max(navigationSequence, Number(sessionStorage.getItem(NAV_SEQUENCE_KEY)) || 0);
+  } catch(e) {
+    status(`Browser Back/Forward state is unavailable: ${e.message}`, true);
+    return navigationSequence;
+  }
+}
+
+function persistSavedSearches(){
+  try {
+    localStorage.setItem(SAVED_HISTORY_KEY, JSON.stringify(savedSearches));
+    return true;
+  } catch(e) {
+    status(`Could not save search history in this browser: ${e.message}`, true);
+    return false;
+  }
+}
+
+function syncNavigationButtons(){
+  $('history-back').disabled = navigationSequence <= 0;
+  $('history-forward').disabled = navigationSequence >= navigationMaximum;
+}
+
+function renderSavedSearches(){
+  const select = $('saved-searches');
+  const selected = select.value;
+  select.replaceChildren();
+  if(!savedSearches.length){
+    const option = document.createElement('option');
+    option.value = ''; option.textContent = 'No saved searches';
+    select.append(option);
+  } else {
+    savedSearches.forEach(entry => {
+      const option = document.createElement('option');
+      option.value = entry.id;
+      option.textContent = `${new Date(entry.createdAt).toLocaleString()} · ${entry.label}`;
+      select.append(option);
+    });
+    if(savedSearches.some(entry => entry.id === selected)) select.value = selected;
+  }
+  $('open-saved').disabled = !savedSearches.length;
+  syncNavigationButtons();
+}
+
+function captureSearchEntry(kind, targets){
+  const mode = $('mode').value;
+  const entry = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    createdAt: new Date().toISOString(),
+    kind,
+    mode,
+    label: targets.map(target => target.label).join(', '),
+    controls: {
+      watchlist: $('watchlist').value,
+      name: $('name').value,
+      ra: $('ra').value,
+      dec: $('dec').value,
+      size: $('size').value,
+      band: $('band').value,
+      gridSize: $('grid-size').value,
+    },
+    targets: targets.map(({ra, dec, label, id, row, col, east, north, mode, fieldSize}) =>
+      ({ra, dec, label, id, row, col, east, north, mode, fieldSize})),
+    marks: [],
+  };
+  savedSearches = [entry, ...savedSearches.filter(item => item.id !== entry.id)].slice(0, MAX_SAVED_SEARCHES);
+  persistSavedSearches();
+  activeSearchId = entry.id;
+  try {
+    const nextSequence = navigationSequence + 1;
+    window.history.pushState({spherexSequence: nextSequence, spherexEntryId: entry.id}, '', location.pathname);
+    navigationSequence = nextSequence;
+    navigationMaximum = navigationSequence;
+    sessionStorage.setItem(NAV_SEQUENCE_KEY, String(navigationMaximum));
+  } catch(e) {
+    status(`Search loaded, but browser Back/Forward could not be updated: ${e.message}`, true);
+  }
+  renderSavedSearches();
+  $('saved-searches').value = entry.id;
+  return entry;
+}
+
+function persistCurrentMarks(){
+  if(!activeSearchId) return;
+  const entry = savedSearches.find(item => item.id === activeSearchId);
+  if(!entry) return;
+  entry.marks = panels.flatMap(panel => panel.frames.filter(frame => frame.mark).map(frame => ({
+    targetId: panel.id,
+    mjd: frame.mjd,
+    mark: {...frame.mark},
+  })));
+  persistSavedSearches();
+}
+
+function restoreEntryControls(entry){
+  $('mode').value = entry.mode;
+  $('watchlist').value = entry.controls.watchlist;
+  $('name').value = entry.controls.name;
+  $('ra').value = entry.controls.ra;
+  $('dec').value = entry.controls.dec;
+  $('size').value = entry.controls.size;
+  $('band').value = entry.controls.band;
+  $('grid-size').value = entry.controls.gridSize;
+  updateMode();
+}
+
+function restoreMarks(entry){
+  for(const saved of entry.marks || []){
+    const panel = panels.find(item => item.id === saved.targetId);
+    const frame = panel?.frames.find(item => Math.abs(item.mjd - saved.mjd) < 1e-8);
+    if(frame) frame.mark = saved.mark;
+  }
+  refreshTrack();
+}
+
+function navigateToSavedEntry(entry, pushState=true){
+  restoreEntryControls(entry);
+  activeSearchId = entry.id;
+  if(pushState){
+    try {
+      const nextSequence = navigationSequence + 1;
+      window.history.pushState({spherexSequence: nextSequence, spherexEntryId: entry.id}, '', location.pathname);
+      navigationSequence = nextSequence;
+      navigationMaximum = navigationSequence;
+      sessionStorage.setItem(NAV_SEQUENCE_KEY, String(navigationMaximum));
+    } catch(e) {
+      status(`Could not add browser history entry: ${e.message}`, true);
+    }
+  }
+  if(entry.kind === 'demo') runDemo({entry, fromNavigation: true});
+  else loadOnline({entry, fromNavigation: true});
+  renderSavedSearches();
+  $('saved-searches').value = entry.id;
+}
+
+if(!window.history.state?.spherexSequence){
+  window.history.replaceState({spherexSequence: navigationSequence, spherexEntryId: null}, '', location.pathname);
+}
+renderSavedSearches();
+window.addEventListener('popstate', event => {
+  navigationSequence = Number(event.state?.spherexSequence) || 0;
+  syncNavigationButtons();
+  if(event.state?.spherexEntryId){
+    const entry = savedSearches.find(item => item.id === event.state.spherexEntryId);
+    if(entry) navigateToSavedEntry(entry, false);
+    else {
+      stop(); clearPanels(); activeSearchId = null;
+      status('That saved search has been cleared from this browser.');
+    }
+  } else {
+    stop(); clearPanels(); activeSearchId = null;
+    status('Returned to the start of this browsing session.');
+  }
+});
+
+ $('history-back').onclick = () => window.history.back();
+ $('history-forward').onclick = () => window.history.forward();
+ $('open-saved').onclick = () => {
+  const entry = savedSearches.find(item => item.id === $('saved-searches').value);
+  if(entry) navigateToSavedEntry(entry);
+};
+ $('clear-saved').onclick = () => {
+  savedSearches = [];
+  activeSearchId = null;
+  persistSavedSearches();
+  renderSavedSearches();
+  status('Saved searches cleared from this browser.');
+};
 
 async function api(path){
   const r = await fetch(path);
@@ -197,12 +473,15 @@ async function watchlistTargets(){
 }
 
 function clearPanels(){
+  stop();
+  panels.forEach(stopPanel);
   panels = []; timeline = []; cur = 0;
   grid.replaceChildren();
   grid.classList.remove('has-focus');
   $('diff').checked = false; $('diff').disabled = true;
   $('scrub').value = 0; $('scrub').max = 0; $('scrub').disabled = true;
   $('play').disabled = true;
+  $('track').replaceChildren();
 }
 
 function createPanels(targets, mode){
@@ -211,6 +490,8 @@ function createPanels(targets, mode){
   panels = targets.map((target, index) => {
     const card = document.createElement('section');
     card.className = 'panel';
+    const view = document.createElement('div');
+    view.className = 'panel-view';
     const canvas = document.createElement('canvas');
     const pixels = targets.length === 1 ? 400 : 200;
     canvas.width = pixels; canvas.height = pixels;
@@ -220,6 +501,11 @@ function createPanels(targets, mode){
     const compass = document.createElement('div');
     compass.className = 'compass'; compass.textContent = 'N ↑ · E ←';
     const hud = document.createElement('div'); hud.className = 'hud';
+    const motion = document.createElement('div'); motion.className = 'motion';
+    const pathBtn = document.createElement('button');
+    pathBtn.className = 'path-btn'; pathBtn.textContent = 'Hide path';
+    pathBtn.setAttribute('aria-label', `Show or hide the path of ${target.label}`);
+    pathBtn.onclick = () => { setPath(panel, !panel.showPath); if(timeline.length) refreshVisible(); };
     const empty = document.createElement('div');
     empty.className = 'empty'; empty.textContent = mode === 'demo' ? 'Preparing simulation…' : 'Searching IRSA…';
     const focus = document.createElement('button');
@@ -231,10 +517,47 @@ function createPanels(targets, mode){
       card.classList.toggle('focused', !wasFocused);
       focus.textContent = wasFocused ? 'Focus' : 'Grid';
     };
-    card.append(canvas, title, compass, hud, empty, focus);
+    const localControls = document.createElement('div');
+    localControls.className = 'panel-controls';
+    localControls.hidden = true;
+    const localPlay = document.createElement('button');
+    localPlay.textContent = 'Play';
+    localPlay.disabled = true;
+    const localScrub = document.createElement('input');
+    localScrub.type = 'range'; localScrub.min = 0; localScrub.max = 0; localScrub.value = 0;
+    localScrub.disabled = true; localScrub.setAttribute('aria-label', `${target.label} frame`);
+    const localSpeedLabel = document.createElement('label');
+    localSpeedLabel.className = 'check'; localSpeedLabel.textContent = 'Speed';
+    const localSpeed = document.createElement('input');
+    localSpeed.type = 'range'; localSpeed.className = 'panel-speed'; localSpeed.min = 1; localSpeed.max = 12; localSpeed.value = 4;
+    localSpeed.setAttribute('aria-label', `${target.label} playback speed`);
+    const localDiffLabel = document.createElement('label');
+    localDiffLabel.className = 'check';
+    const localDiff = document.createElement('input');
+    localDiff.type = 'checkbox'; localDiff.disabled = true;
+    localDiffLabel.append(localDiff, 'Diff');
+    localControls.append(localPlay, localScrub, localSpeedLabel, localSpeed, localDiffLabel);
+    view.append(canvas, title, compass, hud, motion, empty, pathBtn, focus);
+    card.append(view, localControls);
     grid.append(card);
-    return {...target, card, canvas, ctx: canvas.getContext('2d'), hud, empty, frames: [], diffs: []};
+    const panel = {...target, card, view, canvas, ctx: canvas.getContext('2d'), hud, motion, empty, frames: [], diffs: [],
+      fieldSize: Number($('size').value) || 0.1, showPath: true, pairsOpen: true, pathBtn, localControls,
+      localPlay, localScrub, localSpeed, localDiff, currentIndex: 0, timer: null};
+    localPlay.onclick = () => panel.timer ? stopPanel(panel) : playPanel(panel);
+    localScrub.oninput = () => {
+      stopPanel(panel);
+      panel.currentIndex = Number(localScrub.value);
+      renderPanel(panel, panel.frames[panel.currentIndex]);
+    };
+    localSpeed.oninput = () => { if(panel.timer) playPanel(panel); };
+    localDiff.onchange = async () => {
+      if(localDiff.checked) await ensureDiffs([panel]);
+      renderPanel(panel, panel.frames[panel.currentIndex]);
+    };
+    canvas.addEventListener('click', ev => markAt(panel, ev));
+    return panel;
   });
+  updatePlaybackMode();
 }
 
 function setLoadingControls(){
@@ -242,6 +565,53 @@ function setLoadingControls(){
   $('scrub').disabled = true;
   $('diff').checked = false;
   $('diff').disabled = true;
+  panels.forEach(panel => {
+    panel.localPlay.disabled = true;
+    panel.localScrub.disabled = true;
+    panel.localDiff.checked = false;
+    panel.localDiff.disabled = true;
+  });
+}
+
+function updatePlaybackMode(){
+  const nextMode = $('playback-mode').value;
+  if(nextMode !== playbackMode){
+    stop();
+    panels.forEach(stopPanel);
+    if(nextMode === 'independent'){
+      panels.forEach(panel => {
+        panel.localDiff.checked = $('diff').checked && !panel.localDiff.disabled;
+        panel.currentIndex = panel.frames.length
+          ? panel.frames.indexOf(nearestFrame(panel.frames, timeline[cur]?.mjd ?? panel.frames[0].mjd)) : 0;
+      });
+    } else {
+      $('diff').checked = panels.length > 0 && panels.every(panel => panel.localDiff.checked);
+    }
+    playbackMode = nextMode;
+  }
+  const independent = playbackMode === 'independent';
+  document.querySelector('.controls').hidden = independent;
+  panels.forEach(panel => {
+    panel.localControls.hidden = !independent;
+    panel.localScrub.max = Math.max(0, panel.frames.length - 1);
+    panel.localScrub.value = panel.currentIndex;
+  });
+  if(timeline.length) refreshVisible();
+}
+
+function configurePanelControls(){
+  panels.forEach(panel => {
+    panel.currentIndex = 0;
+    panel.localScrub.max = Math.max(0, panel.frames.length - 1);
+    panel.localScrub.disabled = panel.frames.length < 1;
+    panel.localPlay.disabled = panel.frames.length < 2;
+    const bandCounts = panel.frames.reduce((counts, frame) => {
+      counts[frame.band] = (counts[frame.band] || 0) + 1;
+      return counts;
+    }, {});
+    panel.localDiff.disabled = !Object.values(bandCounts).some(count => count > 1);
+  });
+  updatePlaybackMode();
 }
 
 async function mapLimit(items, limit, task){
@@ -262,11 +632,14 @@ function nearestFrame(list, mjd){
   return Math.abs(before.mjd - mjd) <= Math.abs(after.mjd - mjd) ? before : after;
 }
 
-async function loadOnline(){
+async function loadOnline(options={}){
   const id = ++runId;
-  stop(); setLoadingControls();
+  stop(); panels.forEach(stopPanel); setLoadingControls();
   try {
-    const targets = $('mode').value === 'watchlist' ? await watchlistTargets() : skyTargets();
+    if(!options.entry) activeSearchId = null;
+    const targets = options.entry
+      ? options.entry.targets
+      : $('mode').value === 'watchlist' ? await watchlistTargets() : skyTargets();
     if(id !== runId) return;
     createPanels(targets, 'online');
     const unit = $('mode').value === 'watchlist' ? 'target' : 'field';
@@ -298,7 +671,7 @@ async function loadOnline(){
       try {
         const q = new URLSearchParams({
           url: frame.url, ra: panel.ra, dec: panel.dec,
-          size: Number($('size').value) || 0.1,
+          size: panel.fieldSize,
           npix: targets.length === 1 ? 400 : 200,
         });
         const response = await api('/api/frame?' + q);
@@ -317,6 +690,7 @@ async function loadOnline(){
     });
     timeline = reference.frames.filter(frame => frame.image);
     if(!timeline.length) throw new Error('Images were found, but no cutout frames could be loaded. Check the server log.');
+    configurePanelControls();
     $('scrub').max = timeline.length - 1;
     $('scrub').disabled = false;
     $('play').disabled = false;
@@ -325,7 +699,13 @@ async function loadOnline(){
         bands[frame.band] = (bands[frame.band] || 0) + 1;
         return bands;
       }, {})).some(count => count > 1));
-      status(`${timeline.length} synchronized dates · ${timeline[0].date} to ${timeline[timeline.length-1].date} UTC${failed ? ` · ${failed} cutout(s) unavailable` : ''}.`);
+    if(options.entry){
+      activeSearchId = options.entry.id;
+      restoreMarks(options.entry);
+    } else {
+      captureSearchEntry('online', targets);
+    }
+    status(`${timeline.length} synchronized dates · ${timeline[0].date} to ${timeline[timeline.length-1].date} UTC${failed ? ` · ${failed} cutout(s) unavailable` : ''}.`);
     show(0); play();
   } catch(e) {
     if(id === runId) {
@@ -347,12 +727,13 @@ function seededRandom(seed){
   };
 }
 
-async function runDemo(){
+async function runDemo(options={}){
   const id = ++runId;
-  stop(); setLoadingControls();
+  stop(); panels.forEach(stopPanel); setLoadingControls();
   let targets;
   try {
-    targets = $('mode').value === 'watchlist'
+    if(!options.entry) activeSearchId = null;
+    targets = options.entry ? options.entry.targets : $('mode').value === 'watchlist'
       ? $('watchlist').value.split(/\r?\n/).map(text => text.trim()).filter(Boolean).map((label, targetId) => ({
           label, id: targetId, mode: 'watchlist', ra: 0, dec: 0,
           east: (targetId - 1) * (Number($('size').value) || 0.1) * 1.1, north: 0,
@@ -433,8 +814,15 @@ async function runDemo(){
     status(`Building synchronized demo frames ${i + 1}/${count}…`);
   }
   panels.forEach(panel => { panel.empty.hidden = true; });
+  configurePanelControls();
   $('scrub').max = timeline.length - 1;
   $('scrub').disabled = false; $('play').disabled = false; $('diff').disabled = false;
+  if(options.entry){
+    activeSearchId = options.entry.id;
+    restoreMarks(options.entry);
+  } else {
+    captureSearchEntry('demo', targets);
+  }
   status(`Demo simulation · ${panels.length} synchronized ${targets.length === 1 ? 'field' : 'targets'} · one synthetic target per tile.`);
   show(0); play();
 }
@@ -469,19 +857,28 @@ function medianFloat32(a){
   return n & 1 ? b[m] : 0.5 * (b[m - 1] + b[m]);
 }
 
-async function pixelsToBitmap(w, h, grey){
+async function residualsToBitmap(w, h, residuals, scale){
   const img = new ImageData(w, h);
   const d = img.data;
-  for(let p = 0, i = 0; p < grey.length; p++, i += 4){
-    d[i] = d[i + 1] = d[i + 2] = grey[p];
+  for(let p = 0, i = 0; p < residuals.length; p++, i += 4){
+    const strength = scale > 1e-6 ? Math.min(1, Math.abs(residuals[p]) / scale) : 0;
+    if(residuals[p] >= 0){
+      d[i] = Math.round(255 * strength);
+      d[i + 1] = Math.round(190 * strength * strength);
+      d[i + 2] = Math.round(70 * strength * strength);
+    } else {
+      d[i] = 0;
+      d[i + 1] = Math.round(180 * strength);
+      d[i + 2] = Math.round(255 * strength);
+    }
     d[i + 3] = 255;
   }
   return createImageBitmap(img);
 }
 
-async function ensureDiffs(){
-  status('Computing synchronized difference frames…');
-  for(const panel of panels){
+async function ensureDiffs(targetPanels=panels){
+  if(playbackMode === 'sync') status('Computing synchronized difference frames…');
+  for(const panel of targetPanels){
     if(panel.diffs.length === panel.frames.length) continue;
     const imgs = panel.frames.map(frame => frame.image);
     if(!imgs.length) continue;
@@ -494,10 +891,8 @@ async function ensureDiffs(){
 
   for(const idxs of Object.values(byBand)){
     const n = idxs.length;
-    const grey = new Uint8ClampedArray(npix);
     if(n < 2){
-      grey.fill(128);
-      out[idxs[0]] = await pixelsToBitmap(w, h, grey);
+      out[idxs[0]] = await residualsToBitmap(w, h, new Float32Array(npix), 0);
       continue;
     }
     const med = new Float32Array(npix);
@@ -523,52 +918,634 @@ async function ensureDiffs(){
     }
     const scale = 3 * 1.4826 * mad;
     for(let k = 0; k < n; k++){
-      const r = resids[k];
-      if(scale < 1e-6) grey.fill(128);
-      else for(let p = 0; p < npix; p++) grey[p] = 128 + (r[p] / scale) * 128;
-      out[idxs[k]] = await pixelsToBitmap(w, h, grey);
+      out[idxs[k]] = await residualsToBitmap(w, h, resids[k], scale);
     }
   }
     panel.diffs = out;
   }
-  status('Difference frames ready.');
+  if(playbackMode === 'sync') status('Difference frames ready.');
 }
+
+/* ---------- Motion measurement ----------
+   You click the moving source on a paused frame. The click is turned into a sky position with the exact
+   inverse of the TAN grid the backend used (north up, east left), then compared with your previous mark. */
+const DEG = Math.PI / 180;
+const snapCanvas = document.createElement('canvas');
+
+function pixelToSky(panel, cx, cy){
+  const w = panel.canvas.width;
+  const s = (panel.fieldSize / w) * DEG;            // radians per canvas pixel
+  const xi = -(cx - w / 2) * s;                      // east is to the left
+  const eta = -(cy - w / 2) * s;                     // north is up
+  const ra0 = panel.ra * DEG, dec0 = panel.dec * DEG;
+  const rho = Math.hypot(xi, eta);
+  if(rho === 0) return {ra: panel.ra, dec: panel.dec};
+  const c = Math.atan(rho);
+  const dec = Math.asin(Math.cos(c) * Math.sin(dec0) + eta * Math.sin(c) * Math.cos(dec0) / rho);
+  const ra = ra0 + Math.atan2(xi * Math.sin(c), rho * Math.cos(dec0) * Math.cos(c) - eta * Math.sin(dec0) * Math.sin(c));
+  return {ra: ((ra / DEG) % 360 + 360) % 360, dec: dec / DEG};
+}
+
+function skyStep(a, b){                              // distance and direction going from point a to point b
+  const d1 = a.dec * DEG, d2 = b.dec * DEG, dr = (b.ra - a.ra) * DEG;
+  const north = Math.cos(d1) * Math.sin(d2) - Math.sin(d1) * Math.cos(d2) * Math.cos(dr);
+  const east = Math.cos(d2) * Math.sin(dr);
+  const along = Math.sin(d1) * Math.sin(d2) + Math.cos(d1) * Math.cos(d2) * Math.cos(dr);
+  return {
+    arcsec: Math.atan2(Math.hypot(east, north), along) / DEG * 3600,
+    pa: (Math.atan2(east, north) / DEG + 360) % 360,  // degrees, north through east (astropy convention)
+  };
+}
+
+function compass(pa){
+  return ['N','NE','E','SE','S','SW','W','NW'][Math.floor(((pa + 22.5) % 360) / 45)];
+}
+function fmtDist(a){ return a < 60 ? a.toFixed(2) + '″' : a < 3600 ? (a / 60).toFixed(2) + '′' : (a / 3600).toFixed(3) + '°'; }
+function fmtTime(h){ return h < 48 ? h.toFixed(1) + ' h' : (h / 24).toFixed(2) + ' d'; }
+
+function snapToSource(bmp, cx, cy, r = 5){
+  const w = bmp.width, h = bmp.height;
+  snapCanvas.width = w; snapCanvas.height = h;
+  const g = snapCanvas.getContext('2d', {willReadFrequently: true});
+  g.drawImage(bmp, 0, 0);
+  const x0 = Math.max(0, Math.floor(cx) - r), x1 = Math.min(w - 1, Math.floor(cx) + r);
+  const y0 = Math.max(0, Math.floor(cy) - r), y1 = Math.min(h - 1, Math.floor(cy) + r);
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+  const data = g.getImageData(x0, y0, bw, bh).data;
+  const vals = [];
+  for(let i = 0; i < data.length; i += 4) vals.push(data[i]);
+  const bg = [...vals].sort((a, b) => a - b)[vals.length >> 1];   // local background = median
+  let sw = 0, sx = 0, sy = 0;
+  for(let y = 0; y < bh; y++) for(let x = 0; x < bw; x++){
+    const v = Math.max(0, vals[y * bw + x] - bg);
+    sw += v; sx += v * (x0 + x + 0.5); sy += v * (y0 + y + 0.5);
+  }
+  return sw > 0 ? {cx: sx / sw, cy: sy / sw} : {cx, cy};
+}
+
+function markAt(panel, ev){
+  if(!timeline.length || !panel.frames.length) return;
+  if(playbackMode === 'independent') stopPanel(panel);
+  else stop();
+  const frame = playbackMode === 'independent'
+    ? panel.frames[panel.currentIndex]
+    : nearestFrame(panel.frames, timeline[cur].mjd);
+  if(ev.shiftKey){ delete frame.mark; persistCurrentMarks(); refreshTrack(); refreshVisible(); return; }
+  const rect = panel.canvas.getBoundingClientRect();
+  let cx = (ev.clientX - rect.left) / rect.width * panel.canvas.width;
+  let cy = (ev.clientY - rect.top) / rect.height * panel.canvas.height;
+  if($('snap').checked){
+    const idx = panel.frames.indexOf(frame);
+    const useDiff = playbackMode === 'independent' ? panel.localDiff.checked : $('diff').checked;
+    const source = useDiff && panel.diffs[idx] ? panel.diffs[idx] : frame.image;
+    ({cx, cy} = snapToSource(source, cx, cy));
+  }
+  frame.mark = {cx, cy, ...pixelToSky(panel, cx, cy)};
+  persistCurrentMarks();
+  refreshTrack(); refreshVisible();
+}
+
+function setPath(panel, on){
+  panel.showPath = on;
+  const label = on ? 'Hide path' : 'Show path';
+  panel.pathBtn.textContent = label;
+  if(panel.trackBtn) panel.trackBtn.textContent = label;
+}
+
+function trackRows(panel){
+  const marked = panel.frames.filter(f => f.mark).sort((a, b) => a.mjd - b.mjd);
+  return marked.map((f, i) => {
+    const row = {
+      frame: panel.frames.indexOf(f) + 1, time_utc: f.date.replace(' ', 'T') + 'Z', mjd: f.mjd, band: f.band,
+      ra_deg: f.mark.ra, dec_deg: f.mark.dec,
+      moved_arcsec: null, direction: null, direction_deg: null, dt_hours: null,
+      rate_arcsec_per_hr: null, rate_arcsec_per_day: null, demo: !!f.demo, marked_by: f.mark.auto ? 'auto' : 'manual',
+    };
+    if(i){
+      const p = marked[i - 1], st = skyStep(p.mark, f.mark), dt = (f.mjd - p.mjd) * 24;
+      Object.assign(row, {moved_arcsec: st.arcsec, direction: compass(st.pa), direction_deg: st.pa, dt_hours: dt});
+      if(dt > 0){ row.rate_arcsec_per_hr = st.arcsec / dt; row.rate_arcsec_per_day = st.arcsec / dt * 24; }
+    }
+    return row;
+  });
+}
+
+function pairRows(panel){                            // every date against every later date of the same object
+  const rows = trackRows(panel), out = [];
+  for(let i = 0; i < rows.length; i++) for(let j = i + 1; j < rows.length; j++){
+    const a = rows[i], b = rows[j];
+    const st = skyStep({ra: a.ra_deg, dec: a.dec_deg}, {ra: b.ra_deg, dec: b.dec_deg});
+    const dt = (b.mjd - a.mjd) * 24;
+    out.push({
+      from_frame: a.frame, to_frame: b.frame, from_time_utc: a.time_utc, to_time_utc: b.time_utc,
+      dt_hours: dt, moved_arcsec: st.arcsec, direction: compass(st.pa), direction_deg: st.pa,
+      rate_arcsec_per_day: dt > 0 ? st.arcsec / dt * 24 : null,
+    });
+  }
+  return out;
+}
+
+function drawMarks(panel, frame){
+  const all = panel.frames.filter(f => f.mark).sort((a, b) => a.mjd - b.mjd);
+  const ctx = panel.ctx, k = panel.canvas.width / 200;
+  if(panel.showPath){
+    if(all.length > 1){
+      ctx.strokeStyle = 'rgba(255,212,121,.75)'; ctx.lineWidth = k; ctx.beginPath();
+      all.forEach((f, i) => i ? ctx.lineTo(f.mark.cx, f.mark.cy) : ctx.moveTo(f.mark.cx, f.mark.cy));
+      ctx.stroke();
+    }
+    ctx.font = `${9 * k}px system-ui, sans-serif`;
+    all.forEach(f => {
+      ctx.fillStyle = f.mjd <= frame.mjd ? '#ffd479' : 'rgba(255,212,121,.45)';   // later dates are dimmer
+      ctx.beginPath(); ctx.arc(f.mark.cx, f.mark.cy, 1.6 * k, 0, Math.PI * 2); ctx.fill();
+      ctx.fillText('#' + (panel.frames.indexOf(f) + 1), f.mark.cx + 4 * k, f.mark.cy - 4 * k);
+    });
+  }
+  let text = '';
+  if(frame.mark){
+    ctx.strokeStyle = '#ffd479'; ctx.lineWidth = k; ctx.beginPath();
+    ctx.arc(frame.mark.cx, frame.mark.cy, 7 * k, 0, Math.PI * 2); ctx.stroke();
+    const row = trackRows(panel).find(r => r.mjd === frame.mjd && r.ra_deg === frame.mark.ra);
+    text = !row ? '' : row.moved_arcsec === null ? 'First marked point'
+      : `Moved ${fmtDist(row.moved_arcsec)} ${row.direction} (PA ${row.direction_deg.toFixed(0)}°) in ${fmtTime(row.dt_hours)}`
+        + (row.rate_arcsec_per_day === null ? '' : ` · ${fmtDist(row.rate_arcsec_per_day)}/day`);
+  }
+  panel.motion.textContent = text;
+}
+
+function refreshTrack(){
+  const box = $('track'); box.replaceChildren();
+  const cols = [['#', 'frame'], ['UTC time', 'time_utc'], ['RA (°)', 'ra_deg'], ['Dec (°)', 'dec_deg'],
+    ['Moved', 'moved'], ['Direction', 'dir'], ['Δt', 'dt'], ['Rate / day', 'rate']];
+  for(const panel of panels){
+    const rows = trackRows(panel);
+    if(!rows.length) continue;
+    const h = document.createElement('h3');
+    h.textContent = panel.label + (rows.some(r => r.demo) ? ' (DEMO, simulated source)' : '');
+    const pb = document.createElement('button');
+    pb.textContent = panel.showPath ? 'Hide path' : 'Show path';
+    pb.onclick = () => { setPath(panel, !panel.showPath); if(timeline.length) refreshVisible(); };
+    panel.trackBtn = pb; h.append(pb);
+    const table = document.createElement('table');
+    const head = table.insertRow();
+    cols.forEach(([name]) => { const th = document.createElement('th'); th.textContent = name; head.append(th); });
+    for(const r of rows){
+      const tr = table.insertRow();
+      const cells = [r.frame + (r.marked_by === 'auto' ? '*' : ''), r.time_utc.replace('T', ' ').replace('Z', ''), r.ra_deg.toFixed(5), r.dec_deg.toFixed(5),
+        r.moved_arcsec === null ? '–' : fmtDist(r.moved_arcsec),
+        r.direction === null ? '–' : `${r.direction} (${r.direction_deg.toFixed(0)}°)`,
+        r.dt_hours === null ? '–' : fmtTime(r.dt_hours),
+        r.rate_arcsec_per_day === null ? '–' : fmtDist(r.rate_arcsec_per_day)];
+      cells.forEach(c => { tr.insertCell().textContent = c; });
+    }
+    box.append(h, table);
+    if(rows.some(r => r.marked_by === 'auto')){
+      const note = document.createElement('p'); note.className = 'hint';
+      note.textContent = '* position found automatically. Check it on the frame and click the source to correct it.';
+      box.append(note);
+    }
+    if(rows.length > 1){
+      const det = document.createElement('details'); det.open = panel.pairsOpen;
+      det.addEventListener('toggle', () => { panel.pairsOpen = det.open; });
+      const sum = document.createElement('summary');
+      sum.textContent = `Day-to-day differences, every date against every later date (row → column)`;
+      const pt = document.createElement('table'); pt.className = 'pairs';
+      const ph = pt.insertRow(); ph.insertCell().outerHTML = '<th>From ↓ / To →</th>';
+      rows.forEach(r => { const th = document.createElement('th'); th.textContent = '#' + r.frame; ph.append(th); });
+      rows.forEach((a, i) => {
+        const tr = pt.insertRow();
+        const th = document.createElement('th');
+        th.textContent = `#${a.frame} · ${a.time_utc.replace('T', ' ').replace('Z', '')}`; tr.append(th);
+        rows.forEach((b, j) => {
+          const td = tr.insertCell();
+          if(j <= i){ td.className = 'empty-cell'; td.textContent = j === i ? '·' : ''; return; }
+          const st = skyStep({ra: a.ra_deg, dec: a.dec_deg}, {ra: b.ra_deg, dec: b.dec_deg});
+          td.textContent = `${fmtDist(st.arcsec)} ${compass(st.pa)}`;
+          td.title = `PA ${st.pa.toFixed(0)}° in ${fmtTime((b.mjd - a.mjd) * 24)}`;
+        });
+      });
+      det.append(sum, pt); box.append(det);
+    }
+  }
+}
+
+function download(name, text, type){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type}));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function markedPanels(){ return panels.map(p => ({panel: p, rows: trackRows(p)})).filter(x => x.rows.length); }
+
+$('dl-json').onclick = () => {
+  const data = markedPanels();
+  if(!data.length){ status('Nothing to download yet. Pause on a frame and click the moving source first.', true); return; }
+  const demo = data.some(x => x.rows.some(r => r.demo));
+  download('spherex-motion.json', JSON.stringify({
+    generated: new Date().toISOString(),
+    source: demo ? 'DEMO simulation (not real SPHEREx data)' : 'IRSA public SPHEREx spectral images',
+    note: 'Positions were marked by hand on the images (ICRS degrees). direction_deg is the position angle, north through east.',
+    targets: data.map(({panel, rows}) => ({
+      target: panel.label, center_ra_deg: panel.ra, center_dec_deg: panel.dec, field_deg: panel.fieldSize, frames: rows, day_to_day: pairRows(panel),
+    })),
+  }, null, 2), 'application/json');
+};
+
+$('dl-csv').onclick = () => {
+  const data = markedPanels();
+  if(!data.length){ status('Nothing to download yet. Pause on a frame and click the moving source first.', true); return; }
+  const keys = ['frame','time_utc','mjd','band','ra_deg','dec_deg','moved_arcsec','direction','direction_deg','dt_hours','rate_arcsec_per_hr','rate_arcsec_per_day','demo','marked_by'];
+  const lines = [['target', ...keys].join(',')];
+  for(const {panel, rows} of data) for(const r of rows)
+    lines.push([JSON.stringify(panel.label), ...keys.map(k => r[k] === null ? '' : r[k])].join(','));
+  download('spherex-motion.csv', lines.join('\n'), 'text/csv');
+};
+
+$('dl-pairs').onclick = () => {
+  const data = markedPanels().filter(x => x.rows.length > 1);
+  if(!data.length){ status('Mark the source on at least two dates first.', true); return; }
+  const keys = ['from_frame','to_frame','from_time_utc','to_time_utc','dt_hours','moved_arcsec','direction','direction_deg','rate_arcsec_per_day'];
+  const lines = [['target', ...keys].join(',')];
+  for(const {panel} of data) for(const r of pairRows(panel))
+    lines.push([JSON.stringify(panel.label), ...keys.map(k => r[k] === null ? '' : r[k])].join(','));
+  download('spherex-day-to-day.csv', lines.join('\n'), 'text/csv');
+};
+
+$('clear-marks').onclick = () => {
+  panels.forEach(p => p.frames.forEach(f => { delete f.mark; }));
+  persistCurrentMarks();
+  refreshTrack();
+  if(timeline.length) refreshVisible();
+};
+
+/* ---------- Automatic mover search ----------
+   Stars sit at the same sky position in every frame, so subtracting the per-pixel median of the frames
+   leaves what changed. Bright residual peaks are candidates; peaks that show up at the same place in many
+   frames are static leftovers and are dropped; the rest are linked frame to frame, preferring strong
+   peaks and small jumps. The result is a first guess for you to check, not a verdict. */
+function dilateMask(mask, w, h, r){
+  const tmp = new Uint8Array(w * h), out = new Uint8Array(w * h);
+  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){
+    let v = 0;
+    for(let dx = -r; dx <= r && !v; dx++){ const xx = x + dx; if(xx >= 0 && xx < w && mask[y * w + xx]) v = 1; }
+    tmp[y * w + x] = v;
+  }
+  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){
+    let v = 0;
+    for(let dy = -r; dy <= r && !v; dy++){ const yy = y + dy; if(yy >= 0 && yy < h && tmp[yy * w + x]) v = 1; }
+    out[y * w + x] = v;
+  }
+  return out;
+}
+
+function findMoverTrack(lumas, w, h, opt = {}){
+  const n = lumas.length, npix = w * h;
+  const thr = opt.thr ?? 4, maxCand = opt.maxCand ?? 6, jumpCost = opt.jumpCost ?? 0.05;
+  const staticRadius = opt.staticRadius ?? 2.5, staticFrac = opt.staticFrac ?? 0.4;
+  if(n < 3) return [];
+
+  const med = new Float32Array(npix), col = new Float32Array(n);
+  for(let p = 0; p < npix; p++){
+    for(let k = 0; k < n; k++) col[k] = lumas[k][p];
+    med[p] = medianInPlace(col, n);
+  }
+  const medBad = new Uint8Array(npix);
+  for(let p = 0; p < npix; p++) medBad[p] = med[p] < 2 ? 1 : 0;
+  const medBadD = dilateMask(medBad, w, h, 3);
+
+  const smooth = [];                                   // 3x3-smoothed residual per frame, 0 where unusable
+  for(let k = 0; k < n; k++){
+    const v = lumas[k], bad = new Uint8Array(npix);
+    for(let p = 0; p < npix; p++) bad[p] = v[p] < 2 ? 1 : 0;
+    const badD = dilateMask(bad, w, h, 3);
+    const r = new Float32Array(npix);
+    for(let p = 0; p < npix; p++) r[p] = (badD[p] || medBadD[p]) ? 0 : v[p] - med[p];
+    const sm = new Float32Array(npix);
+    for(let y = 1; y < h - 1; y++) for(let x = 1; x < w - 1; x++){
+      const p = y * w + x;
+      sm[p] = (r[p-w-1] + r[p-w] + r[p-w+1] + r[p-1] + r[p] + r[p+1] + r[p+w-1] + r[p+w] + r[p+w+1]) / 9;
+    }
+    smooth.push(sm);
+  }
+
+  const sample = [];                                   // robust noise level from a sample of pixels
+  for(const sm of smooth) for(let p = 0; p < npix; p += 7) if(sm[p] !== 0) sample.push(Math.abs(sm[p]));
+  if(sample.length < 100) return [];
+  const sigma = 1.4826 * medianFloat32(Float32Array.from(sample));
+  if(!(sigma > 1e-6)) return [];
+
+  const medSample = [];                                // sky level and its noise, from the median image
+  for(let p = 0; p < npix; p += 5) if(!medBadD[p]) medSample.push(med[p]);
+  const sky = medSample.length ? medianFloat32(Float32Array.from(medSample)) : 0;
+  const medNoise = Math.max(1, 1.4826 * medianFloat32(Float32Array.from(medSample.map(v => Math.abs(v - sky)))));
+  const isStar = (x, y) => {                           // a mover is absent from the median; a star is not
+    let top = -Infinity;
+    for(let dy = -1; dy <= 1; dy++) for(let dx = -1; dx <= 1; dx++) top = Math.max(top, med[(y + dy) * w + x + dx]);
+    return top - sky > 5 * medNoise;
+  };
+
+  const peaks = smooth.map(sm => {                     // strongest local maxima in each frame
+    const list = [], m = 3;
+    for(let y = m; y < h - m; y++) for(let x = m; x < w - m; x++){
+      const val = sm[y * w + x];
+      if(val < thr * sigma) continue;
+      let isMax = true;
+      for(let dy = -m; dy <= m && isMax; dy++) for(let dx = -m; dx <= m; dx++)
+        if(sm[(y + dy) * w + x + dx] > val){ isMax = false; break; }
+      if(isMax && !isStar(x, y)) list.push({x, y, val});
+    }
+    return list.sort((a, b) => b.val - a.val).slice(0, 12);
+  });
+
+  const cands = peaks.map((list, k) => {
+    const keep = list.filter(c => {
+      let seen = 0;
+      for(let j = 0; j < n; j++){
+        if(j === k) continue;
+        if(peaks[j].some(o => Math.hypot(o.x - c.x, o.y - c.y) <= staticRadius)) seen++;
+      }
+      return seen < staticFrac * (n - 1);              // present in few frames, so it is not a static leftover
+    }).slice(0, maxCand);
+    return keep.map(c => {                             // sub-pixel centre of the blob above half its peak
+      const sm = smooth[k]; let sw = 0, sx = 0, sy = 0;
+      for(let dy = -3; dy <= 3; dy++) for(let dx = -3; dx <= 3; dx++){
+        const wv = Math.max(0, sm[(c.y + dy) * w + c.x + dx] - 0.5 * c.val);
+        sw += wv; sx += wv * (c.x + dx + 0.5); sy += wv * (c.y + dy + 0.5);
+      }
+      return {x: sw ? sx / sw : c.x + 0.5, y: sw ? sy / sw : c.y + 0.5, snr: c.val / sigma};
+    });
+  });
+
+  const frames = cands.map((c, k) => k).filter(k => cands[k].length);
+  if(!frames.length) return [];
+  const best = [], from = [];
+  frames.forEach((k, fi) => {
+    best[fi] = []; from[fi] = [];
+    cands[k].forEach((c, ci) => {
+      const own = Math.min(c.snr, 15);
+      if(!fi){ best[fi][ci] = own; from[fi][ci] = -1; return; }
+      let bs = -Infinity, bi = 0;
+      cands[frames[fi - 1]].forEach((q, qi) => {
+        const sc = best[fi - 1][qi] - jumpCost * Math.hypot(c.x - q.x, c.y - q.y);
+        if(sc > bs){ bs = sc; bi = qi; }
+      });
+      best[fi][ci] = own + bs; from[fi][ci] = bi;
+    });
+  });
+  let ci = 0, last = frames.length - 1;
+  best[last].forEach((v, i) => { if(v > best[last][ci]) ci = i; });
+  const track = [];
+  for(let fi = last; fi >= 0; fi--){
+    const c = cands[frames[fi]][ci];
+    track.unshift({k: frames[fi], x: c.x, y: c.y, snr: c.snr});
+    ci = from[fi][ci];
+  }
+  const snrs = track.map(t => t.snr).sort((a, b) => a - b);
+  const minMedianSnr = opt.minMedianSnr ?? 6;           // noise peaks sit near the threshold; real sources stand well above it
+  if(track.length < 3 || snrs[snrs.length >> 1] < minMedianSnr) return [];
+  return track;
+}
+
+async function autoFindPaths(){
+  if(!panels.some(p => p.frames.length)){ status('Load images first (Find images online or Run demo).', true); return; }
+  stop();
+  status('Searching each object for a moving source…');
+  await new Promise(r => setTimeout(r, 30));
+  let total = 0; const notes = [];
+  for(const panel of panels){
+    panel.frames.forEach(f => { if(f.mark && f.mark.auto) delete f.mark; });
+    const groups = {};
+    panel.frames.forEach(f => { (groups[f.band] ||= []).push(f); });
+    const frames = (Object.values(groups).sort((a, b) => b.length - a.length)[0] || []).slice().sort((a, b) => a.mjd - b.mjd);
+    if(frames.length < 3){ notes.push(`${panel.label}: needs at least 3 frames of one band`); continue; }
+    const w = frames[0].image.width, h = frames[0].image.height;
+    const track = findMoverTrack(frames.map(f => lumaOf(f.image)), w, h);
+    let placed = 0;
+    for(const t of track){
+      const f = frames[t.k];
+      if(f.mark) continue;                              // never overwrite a mark you placed by hand
+      const cx = t.x * panel.canvas.width / w, cy = t.y * panel.canvas.height / h;
+      f.mark = {cx, cy, ...pixelToSky(panel, cx, cy), auto: true, snr: t.snr};
+      placed++;
+    }
+    total += placed;
+    if(!placed) notes.push(`${panel.label}: no moving source stood out`);
+  }
+  persistCurrentMarks();
+  refreshTrack(); if(timeline.length) refreshVisible();
+  status(total ? `Auto-found ${total} positions (marked * in the table). Check them and click the source to correct any.` + (notes.length ? ' ' + notes.join('; ') + '.' : '')
+               : (notes.join('; ') || 'No moving source stood out.') + ' You can still click the source by hand.', !total);
+}
+
+$('auto-find').onclick = () => autoFindPaths().catch(e => status('Auto-find failed: ' + e.message, true));
+$('paths-all').onclick = () => {
+  const on = !panels.every(p => p.showPath);
+  panels.forEach(p => setPath(p, on));
+  $('paths-all').textContent = on ? 'Hide all paths' : 'Show all paths';
+  if(timeline.length) refreshVisible();
+};
 
 function show(i){
   if(!timeline.length) return;
   cur = (i + timeline.length) % timeline.length;
   const master = timeline[cur];
   for(const panel of panels){
-    if(!panel.frames.length){
-      panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-      continue;
-    }
-    const frame = nearestFrame(panel.frames, master.mjd);
-    const frameIndex = panel.frames.indexOf(frame);
-    const source = $('diff').checked && panel.diffs[frameIndex] ? panel.diffs[frameIndex] : frame.image;
-    panel.ctx.drawImage(source, 0, 0, panel.canvas.width, panel.canvas.height);
-    panel.hud.textContent = `${cur+1}/${timeline.length} · ${frame.date} UTC · ${frame.band}${frame.demo ? ' · DEMO' : ''}${$('diff').checked ? ' · difference' : ''}`;
+    const frame = panel.frames.length ? nearestFrame(panel.frames, master.mjd) : null;
+    if(frame) panel.currentIndex = panel.frames.indexOf(frame);
+    renderPanel(panel, frame);
   }
   $('scrub').value = cur;
 }
-function play(){ stop(); timer = setInterval(() => show(cur + 1), 1000 / +$('speed').value); $('play').textContent = 'Pause'; }
+function renderPanel(panel, frame){
+  if(!frame){
+    panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+    return;
+  }
+  const frameIndex = panel.frames.indexOf(frame);
+  const useDiff = playbackMode === 'independent' ? panel.localDiff.checked : $('diff').checked;
+  const source = useDiff && panel.diffs[frameIndex] ? panel.diffs[frameIndex] : frame.image;
+  panel.ctx.drawImage(source, 0, 0, panel.canvas.width, panel.canvas.height);
+  drawMarks(panel, frame);
+  const count = playbackMode === 'independent' ? panel.frames.length : timeline.length;
+  const index = playbackMode === 'independent' ? panel.currentIndex : cur;
+  panel.hud.textContent = `${index+1}/${count} · ${frame.date} UTC · ${frame.band}${frame.demo ? ' · DEMO' : ''}${useDiff ? ' · difference' : ''}`;
+  if(playbackMode === 'independent') panel.localScrub.value = panel.currentIndex;
+}
+function refreshVisible(){
+  if(!timeline.length) return;
+  if(playbackMode === 'sync') show(cur);
+  else panels.forEach(panel => renderPanel(panel, panel.frames[panel.currentIndex]));
+}
+function play(){ stop(); if(playbackMode !== 'sync') return; timer = setInterval(() => show(cur + 1), 1000 / +$('speed').value); $('play').textContent = 'Pause'; }
 function stop(){ if(timer) clearInterval(timer); timer = null; $('play').textContent = 'Play'; }
+function playPanel(panel){
+  stopPanel(panel);
+  if(playbackMode !== 'independent' || panel.frames.length < 2) return;
+  panel.timer = setInterval(() => {
+    panel.currentIndex = (panel.currentIndex + 1) % panel.frames.length;
+    renderPanel(panel, panel.frames[panel.currentIndex]);
+  }, 1000 / Number(panel.localSpeed.value));
+  panel.localPlay.textContent = 'Pause';
+}
+function stopPanel(panel){
+  if(panel.timer) clearInterval(panel.timer);
+  panel.timer = null;
+  if(panel.localPlay) panel.localPlay.textContent = 'Play';
+}
 $('play').onclick = () => timer ? stop() : play();
 $('scrub').oninput = e => { stop(); show(+e.target.value); };
 $('speed').oninput = () => { if(timer) play(); };
 $('diff').onchange = async () => {
   if($('diff').checked && panels.length) await ensureDiffs();
-  if(timeline.length) show(cur);
+  if(timeline.length) refreshVisible();
 };
+ $('playback-mode').onchange = async () => {
+   updatePlaybackMode();
+   const diffPanels = playbackMode === 'independent' ? panels.filter(panel => panel.localDiff.checked) : [];
+   if(diffPanels.length) await ensureDiffs(diffPanels);
+   refreshVisible();
+ };
 document.addEventListener('keydown', e => {
-  if(!timeline.length || ['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName) && e.key === ' ') return;
+  if(playbackMode !== 'sync' || !timeline.length || ['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName) && e.key === ' ') return;
   if(e.key === ' '){ e.preventDefault(); $('play').click(); }
   if(e.key === 'ArrowRight'){ stop(); show(cur + 1); }
   if(e.key === 'ArrowLeft'){ stop(); show(cur - 1); }
 });
 
+const GUIDE_SEEN_KEY = 'spherex-blink:guide-seen:v1';
+const guideSteps = [
+  {selector: '#mode', title: 'Choose a view', text: 'Different targets compares separate objects in separate panels. Adjacent sky tiles shows neighboring patches around one center coordinate. Single field shows one position.'},
+  {selector: '#watchlist', title: 'Enter a target list', when: () => !$('watchlist-controls').hidden, text: 'In Different targets mode, enter one object name or RA, Dec pair in degrees per line. Each line becomes its own panel; up to 9 targets are supported.'},
+  {selector: '#name', title: 'Look up an object name', text: 'For a single field or the center of a sky mosaic, enter a resolvable object name here. Name lookup needs an internet connection.'},
+  {selector: '#resolve', title: 'Resolve the name to coordinates', text: 'Select Look up to fill in the object’s RA and Dec. The example-name buttons also perform a lookup and start an online search.'},
+  {selector: '#ra', title: 'Enter coordinates directly', text: 'You can enter Right Ascension (RA) and Declination (Dec) in degrees instead of using a name. RA must be 0–360° and Dec −90–90°.'},
+  {selector: '#size', title: 'Set the field size', text: 'Field (deg) controls how much sky each cutout covers. Smaller fields zoom in; larger fields include more sky.'},
+  {selector: '#band', title: 'Choose detector bands', text: 'Choose All to search every available band, or select D1–D6 to filter to one detector band.'},
+  {selector: '#grid-size', title: 'Set the sky mosaic layout', when: () => !$('grid-controls').hidden, text: 'In Adjacent sky tiles mode, choose a 2 × 2 or 3 × 3 mosaic. The targets are neighboring sky positions, not different objects.'},
+  {selector: '.chips', title: 'Try an example', text: 'These shortcuts fill in a sample object name, resolve its coordinates, and start an online search.'},
+  {selector: '#go', title: 'Search real observations', text: 'Find images online queries IRSA for public SPHEREx observations. This needs a working internet connection; available dates depend on the target and the archive. To limit network and memory use, multi-target searches load at most 20 frames per target (12 with 9 targets) as smaller cutouts.'},
+  {selector: '#demo', title: 'Try the offline demo', text: 'Run demo builds synthetic images locally, so you can test the viewer without IRSA. Demo images and dates are simulations, not real astronomical observations.'},
+  {selector: '#status', title: 'Read search status', text: 'Progress, errors, and the number/date range of loaded frames appear here. A target with no observations may have an empty panel.'},
+  {selector: '#stage-grid', title: 'Read the image panels', text: 'Each panel shows its target, date, band, and sky orientation (north up, east left). Use Focus to enlarge a panel and Grid to return. The panel path button shows or hides that target’s marked path.'},
+  {selector: '#playback-mode', title: 'Choose shared or separate playback', text: 'Synchronized uses one shared date timeline for all panels. Independent per object lets each panel browse its own available observations, which can have different dates and counts.'},
+  {selector: '#play', title: 'Control synchronized playback', when: () => playbackMode === 'sync', text: 'In synchronized mode, use Play/Pause and the timeline slider to blink through frames. Space toggles playback; Left and Right arrows step one frame.'},
+  {selector: '#speed', title: 'Adjust playback speed', when: () => playbackMode === 'sync', text: 'Drag Speed to change how quickly synchronized frames advance. Each panel’s date label shows the nearest observation used for the selected shared date.'},
+  {selector: '#diff', title: 'View difference images', when: () => playbackMode === 'sync', text: 'Difference shows per-band deviations from the median image: warm colors are brighter, cyan is dimmer, and black is unchanged. This is a visual aid, not calibrated photometry.'},
+  {selector: '.panel-controls:not([hidden])', fallback: '#playback-mode', title: 'Use per-object controls', text: 'Choose Independent per object to reveal Play/Pause, a frame slider, Speed, and Diff inside each loaded panel. These controls affect only that object. Diff uses warm colors for brighter changes, cyan for dimmer changes, and black for unchanged areas.'},
+  {selector: '#snap', title: 'Choose how marks snap', text: 'With Snap to brightest source enabled, a click is adjusted to a nearby bright pixel cluster. Turn it off to keep your exact click position.'},
+  {selector: '.panel-view', fallback: '#stage-grid', title: 'Mark a source position', text: 'Pause first, then click the source in its image panel. Add marks for that same source on other dates. Shift-click a marked point to remove just that mark.'},
+  {selector: '#auto-find', title: 'Suggest a moving-source path', text: 'Auto-find path analyzes frame changes and suggests possible moving-source marks. It can make mistakes: inspect every suggestion and correct it by clicking the source.'},
+  {selector: '#paths-all', title: 'Show or hide paths', text: 'This control toggles the connecting paths across panels. Each panel also has its own path button if you want to show or hide only one target’s path.'},
+  {selector: '#clear-marks', title: 'Clear current marks', text: 'Clear marks removes marked positions from the current run. It does not erase saved searches or marks belonging to other saved runs.'},
+  {selector: '#track', fallback: '.track-actions', title: 'Review measurements', text: 'After you mark a source, its table appears here with UTC time, RA/Dec, angular movement, direction, elapsed time, and rate. With multiple marks, expand the day-to-day table to compare every pair of marked dates.'},
+  {selector: '#dl-json', title: 'Export JSON', text: 'Download JSON saves marked positions and day-to-day measurements in a structured file. It is useful for archiving or processing with code.'},
+  {selector: '#dl-csv', title: 'Export a spreadsheet', text: 'Download CSV saves marked positions and motion columns in a table format that spreadsheet tools can open.'},
+  {selector: '#dl-pairs', title: 'Export date-pair comparisons', text: 'Download day-to-day CSV exports every pair of marked dates for each target. Mark at least two positions first.'},
+  {selector: '#saved-searches', title: 'Find a saved run', text: 'Successful searches and demos are saved in this browser profile, up to 30. Select one here before choosing Open selected.'},
+  {selector: '#history-back', title: 'Navigate recent runs', text: 'Back and Forward revisit searches in browser navigation order. Restoring an online run queries IRSA again; it does not store downloaded images in browser history.'},
+  {selector: '#open-saved', title: 'Restore or clear saved history', text: 'Open selected restores the chosen run, including saved marks. Clear saved history removes all locally saved runs from this browser profile.'},
+  {selector: '#diffnote', title: 'Understand the results', text: 'Motion marks measure a source’s apparent angular movement across time. They do not measure physical speed or distance, and the app does not yet calculate separation between different targets.'},
+];
+let guideSequence = [], guideStepIndex = 0, guideReturnFocus = null, guideReturnScroll = {x: 0, y: 0}, guideArrowFrame = 0;
+
+function activeGuideTarget(step){
+  const primary = document.querySelector(step.selector);
+  if(primary?.getClientRects().length) return primary;
+  const fallback = step.fallback ? document.querySelector(step.fallback) : null;
+  return fallback?.getClientRects().length ? fallback : null;
+}
+
+function drawGuideArrow(){
+  if($('guide-overlay').hidden) return;
+  const target = activeGuideTarget(guideSequence[guideStepIndex]);
+  const card = $('guide-card');
+  if(!target || !card) return;
+  const t = target.getBoundingClientRect(), c = card.getBoundingClientRect();
+  const tx = t.left + t.width / 2, ty = t.top + t.height / 2;
+  const cx = Math.max(c.left + 18, Math.min(tx, c.right - 18));
+  const cy = ty < c.top ? c.top : ty > c.bottom ? c.bottom : Math.max(c.top + 16, Math.min(ty, c.bottom - 16));
+  const bend = Math.max(30, Math.min(110, Math.abs(ty - cy) * 0.35));
+  const controlY = ty < cy ? cy - bend : cy + bend;
+  $('guide-arrow-path').setAttribute('d', `M ${cx} ${cy} Q ${cx} ${controlY} ${tx} ${ty}`);
+}
+
+function finishGuide(){
+  $('guide-overlay').hidden = true;
+  document.querySelectorAll('.guide-highlight').forEach(element => element.classList.remove('guide-highlight'));
+  $('guide-arrow-path').setAttribute('d', '');
+  window.removeEventListener('resize', scheduleGuideArrow);
+  window.removeEventListener('scroll', scheduleGuideArrow, true);
+  window.scrollTo({left: guideReturnScroll.x, top: guideReturnScroll.y, behavior: 'auto'});
+  if(guideReturnFocus?.isConnected) guideReturnFocus.focus();
+}
+
+function scheduleGuideArrow(){
+  cancelAnimationFrame(guideArrowFrame);
+  guideArrowFrame = requestAnimationFrame(drawGuideArrow);
+}
+
+function renderGuideStep(){
+  document.querySelectorAll('.guide-highlight').forEach(element => element.classList.remove('guide-highlight'));
+  const step = guideSequence[guideStepIndex];
+  const target = activeGuideTarget(step);
+  $('guide-progress').textContent = `Step ${guideStepIndex + 1} of ${guideSequence.length}`;
+  $('guide-title').textContent = `${guideStepIndex + 1}. ${step.title}`;
+  $('guide-copy').textContent = step.text;
+  $('guide-back').disabled = guideStepIndex === 0;
+  $('guide-next').textContent = guideStepIndex === guideSequence.length - 1 ? 'Done' : 'Next';
+  if(target){
+    target.scrollIntoView({behavior: 'smooth', block: 'center', inline: 'nearest'});
+    target.classList.add('guide-highlight');
+  }
+  $('guide-card').focus({preventScroll: true});
+  window.addEventListener('resize', scheduleGuideArrow);
+  window.addEventListener('scroll', scheduleGuideArrow, true);
+  window.setTimeout(scheduleGuideArrow, 220);
+}
+
+function openGuide(){
+  guideReturnFocus = document.activeElement;
+  guideReturnScroll = {x: window.scrollX, y: window.scrollY};
+  guideSequence = guideSteps.filter(step => !step.when || step.when());
+  guideStepIndex = 0;
+  $('guide-overlay').hidden = false;
+  try { localStorage.setItem(GUIDE_SEEN_KEY, '1'); }
+  catch(e) { status(`The guide opened, but this browser could not save the first-visit setting: ${e.message}`, true); }
+  renderGuideStep();
+}
+
+$('open-guide').onclick = openGuide;
+$('guide-back').onclick = () => {
+  if(guideStepIndex > 0){ guideStepIndex--; renderGuideStep(); }
+};
+$('guide-next').onclick = () => {
+  if(guideStepIndex < guideSequence.length - 1){ guideStepIndex++; renderGuideStep(); }
+  else finishGuide();
+};
+$('guide-skip').onclick = finishGuide;
+$('guide-overlay').addEventListener('click', event => {
+  if(event.target === $('guide-overlay')) finishGuide();
+});
+document.addEventListener('keydown', event => {
+  if($('guide-overlay').hidden) return;
+  if(event.key === 'Escape'){ event.preventDefault(); finishGuide(); }
+  if(event.key === 'ArrowRight' && guideStepIndex < guideSequence.length - 1){ guideStepIndex++; renderGuideStep(); }
+  if(event.key === 'ArrowLeft' && guideStepIndex > 0){ guideStepIndex--; renderGuideStep(); }
+  if(event.key === 'Tab'){
+    const focusable = [...$('guide-card').querySelectorAll('button:not(:disabled)')];
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if(event.shiftKey && document.activeElement === first){ event.preventDefault(); last.focus(); }
+    else if(!event.shiftKey && document.activeElement === last){ event.preventDefault(); first.focus(); }
+  }
+});
+
 updateMode();
+const currentEntry = savedSearches.find(entry => entry.id === window.history.state?.spherexEntryId);
+if(currentEntry) navigateToSavedEntry(currentEntry, false);
+let guideSeen = false;
+try { guideSeen = localStorage.getItem(GUIDE_SEEN_KEY) === '1'; }
+catch(e) { status(`Could not check the first-visit guide setting: ${e.message}`, true); }
+if(!guideSeen) openGuide();
 </script>
 </body>
 </html>
-
