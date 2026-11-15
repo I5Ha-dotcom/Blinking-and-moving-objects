@@ -6,7 +6,10 @@ Compare public SPHEREx observations of multiple targets side by side to inspect 
 - **Project:** SPHEREx Blink
 - **Selected challenge:** Planet X and SPHEREx
 - **Live prototype:** [Open SPHEREx Blink](https://spherex-blink-fqyx.onrender.com/)
+- **Presentation:** [View the SPHEREx Blink project introduction (PDF)](https://github.com/I5Ha-dotcom/Blinking-and-moving-objects/blob/main/presentation%20%28pdf%29/SPHEREx-Blink-Project-Introduction.pdf)
 - **Development story:** [Read the project history and development log](docs/PROJECT_HISTORY.md)
+
+> **Status note (Nov 15, 2026, 11:47 PM ICT, UTC+7):** In the latest documented integration attempt, IRSA's SPHEREx TAP request returned a proxy error, so a successful live search has not been verified. Online searches depend on IRSA. The offline demo uses synthetic data and works without IRSA. No real-data results are presented in this README.
 
 ## Problem and proposed solution
 Finding a moving or changing source in a large collection of astronomical images can require manually opening and comparing observations from different dates. This makes it difficult to notice motion, especially when observations are separated in time or the object is faint.
