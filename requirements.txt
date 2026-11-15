@@ -2,7 +2,7 @@ fastapi
 uvicorn[standard]
 astropy
 astroquery
-reproject
+matplotlib
 numpy
 pillow
 requests
