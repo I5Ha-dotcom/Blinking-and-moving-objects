@@ -3,7 +3,6 @@ uvicorn[standard]
 astropy
 astroquery
 scipy
-matplotlib
 numpy
 pillow
 requests
